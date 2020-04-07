@@ -1,0 +1,46 @@
+plugins:
+  cloudify_smart_update:
+    executor: central_deployment_agent
+
+workflows:
+  smart_update:
+    mapping: cloudify_smart_update.plugin.tasks.smart_update
+    parameters:
+      update_id:
+        default: ''
+      skip_install:
+        default: false
+      skip_uninstall:
+        default: false
+      added_instance_ids:
+        default: []
+      added_target_instances_ids:
+        default: []
+      removed_instance_ids:
+        default: []
+      remove_target_instance_ids:
+        default: []
+      modified_entity_ids:
+        default: []
+      extended_instance_ids:
+        default: []
+      extend_target_instance_ids:
+        default: []
+      reduced_instance_ids:
+        default: []
+      reduce_target_instance_ids:
+        default: []
+      ignore_failure:
+        default: false
+        type: boolean
+      install_first:
+        default: false
+        type: boolean
+      node_instances_to_reinstall:
+        default: []
+      preupdate:
+        defualt: false
+      update:
+        default: true
+      postupdate:
+        default: false
