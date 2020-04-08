@@ -20,10 +20,10 @@ from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
 from cloudify.manager import get_rest_client
 from cloudify.utils import add_plugins_to_install, add_plugins_to_uninstall
-from cloudify.plugins.workflows import _handle_plugin_after_update
+from constants import UPDATE_OPERATION
 
 @workflow
-def update(ctx,
+def smart_update(ctx,
            update_id,
            added_instance_ids,
            added_target_instances_ids,
@@ -41,8 +41,18 @@ def update(ctx,
            node_instances_to_reinstall=None,
            central_plugins_to_install=None,
            central_plugins_to_uninstall=None,
-           update_plugins=True):
+           update_plugins=True,
+           preupdate=False,
+           update=True,
+           postupdate=False):
     node_instances_to_reinstall = node_instances_to_reinstall or []
+    node_instances_to_update = []
+
+    for node_instance_to_reinstall in node_instances_to_reinstall:
+        if  UPDATE_OPERATION in node_instances_to_reinstall.node.operations:
+            node_instances_to_reinstall.remove(node_instance_to_reinstall)
+            node_instances_to_update.append(node_instance_to_reinstall)
+
     instances_by_change = {
         'added_instances': (added_instance_ids, []),
         'added_target_instances_ids': (added_target_instances_ids, []),
@@ -161,4 +171,46 @@ def update(ctx,
     client = get_rest_client()
     client.deployment_updates.finalize_commit(update_id)
 
+def _handle_plugin_after_update(ctx, plugins_list, action):
+    """ Either install or uninstall plugins on the relevant hosts """
 
+    prefix = 'I' if action == 'add' else 'Uni'
+    message = '{0}nstalling plugins'.format(prefix)
+
+    graph = ctx.graph_mode()
+    plugin_subgraph = graph.subgraph('handle_plugins')
+
+    # The plugin_list is a list of (possibly empty) dicts that may contain
+    # `add`/`remove` keys and (node_id, plugin_dict) values. E.g.
+    # [{}, {}, {'add': (NODE_ID, PLUGIN_DICT)},
+    # {'add': (NODE_ID, PLUGIN_DICT), 'remove': (NODE_ID, PLUGIN_DICT)}]
+    # So we filter out only those dicts that have the relevant action
+    plugins_to_handle = [p[action] for p in plugins_list if p.get(action)]
+
+    # The list might contain duplicates, and it's organized in the following
+    # way: [(node_id, plugin_dict), (node_id, plugin_to_handle), ...] so
+    # we reorganize it into: {node_id: [list_of_plugins], ...}
+    node_to_plugins_map = {}
+    for node, plugin in plugins_to_handle:
+        plugin_list = node_to_plugins_map.setdefault(node, [])
+        if plugin not in plugin_list:
+            plugin_list.append(plugin)
+
+    for node_id, plugins in node_to_plugins_map.items():
+        if not plugins:
+            continue
+
+        instances = ctx.get_node(node_id).instances
+        for instance in instances:
+            if action == 'add':
+                task = lifecycle.plugins_install_task(instance, plugins)
+            else:
+                task = lifecycle.plugins_uninstall_task(instance, plugins)
+
+            if task:
+                seq = plugin_subgraph.sequence()
+                seq.add(
+                    instance.send_event(message),
+                    task
+                )
+    graph.execute()
