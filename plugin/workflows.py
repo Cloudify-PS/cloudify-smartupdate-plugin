@@ -17,10 +17,12 @@
 # ctx is imported and used in operations
 
 from cloudify.decorators import workflow
-from cloudify.plugins import lifecycle
 from cloudify.manager import get_rest_client
-from cloudify.utils import add_plugins_to_install, add_plugins_to_uninstall
-from constants import UPDATE_OPERATION
+
+from . import lifecycle
+from constants import UPDATE_OPERATION,
+    PREUPDATE_OPERATIONS,
+    POSTUPDATE_OPERATIONS
 
 @workflow
 def smart_update(ctx,
@@ -37,21 +39,32 @@ def smart_update(ctx,
            skip_install,
            skip_uninstall,
            ignore_failure=False,
-           install_first=False,
            node_instances_to_reinstall=None,
-           central_plugins_to_install=None,
-           central_plugins_to_uninstall=None,
-           update_plugins=True,
            preupdate=False,
            update=True,
            postupdate=False):
     node_instances_to_reinstall = node_instances_to_reinstall or []
-    node_instances_to_update = []
+    to_preupdate = []
+    to_update = []
+    to_postupdate = []
 
     for node_instance_to_reinstall in node_instances_to_reinstall:
-        if  UPDATE_OPERATION in node_instances_to_reinstall.node.operations:
+        remove_from_reinstall = False
+
+        if  PREUPDATE_OPERATIONS in node_instance_to_reinstall.node.operations:
+            remove_from_reinstall = True
+            to_preupdate.append(node_instance_to_reinstall)
+
+        if  UPDATE_OPERATION in node_instance_to_reinstall.node.operations:
+            remove_from_reinstall = True
+            to_update.append(node_instance_to_reinstall)
+
+        if  POSTUPDATE_OPERATION in node_instance_to_reinstall.node.operations:
+            remove_from_reinstall = True
+            to_postupdate.append(node_instance_to_reinstall)
+
+        if remove_from_reinstall:
             node_instances_to_reinstall.remove(node_instance_to_reinstall)
-            node_instances_to_update.append(node_instance_to_reinstall)
 
     instances_by_change = {
         'added_instances': (added_instance_ids, []),
@@ -76,50 +89,47 @@ def smart_update(ctx,
     to_uninstall = set(instances_by_change['removed_instances'][1])
 
     def _install():
-        def _install_nodes():
-            if skip_install:
-                return
-            # Adding nodes or node instances should be based on modified
-            # instances
-            lifecycle.install_node_instances(
-                graph=graph,
-                node_instances=to_install,
-                related_nodes=set(
-                    instances_by_change['added_target_instances_ids'][1])
-            )
+        if skip_install:
+            return
+        # Adding nodes or node instances should be based on modified instances
+        lifecycle.install_node_instances(
+            graph=graph,
+            node_instances=to_install,
+            related_nodes=set(
+                instances_by_change['added_target_instances_ids'][1])
+        )
 
-            # This one as well.
-            lifecycle.execute_establish_relationships(
-                graph=graph,
-                node_instances=set(
-                    instances_by_change['extended_and_target_instances'][1]),
-                modified_relationship_ids=modified_entity_ids['relationship']
-            )
+        # This one as well.
+        lifecycle.execute_establish_relationships(
+            graph=graph,
+            node_instances=set(
+                instances_by_change['extended_and_target_instances'][1]),
+            modified_relationship_ids=modified_entity_ids['relationship']
+        )
 
-        _install_nodes()
-        _install_plugins_on_agent()
+        _handle_plugin_after_update(ctx, modified_entity_ids['plugin'], 'add')
 
     def _uninstall():
-        def _uninstall_nodes():
-            if skip_uninstall:
-                return
-            lifecycle.execute_unlink_relationships(
-                graph=graph,
-                node_instances=set(
-                    instances_by_change['reduced_and_target_instances'][1]),
-                modified_relationship_ids=modified_entity_ids['relationship']
-            )
+        if skip_uninstall:
+            return
+        lifecycle.execute_unlink_relationships(
+            graph=graph,
+            node_instances=set(
+                instances_by_change['reduced_and_target_instances'][1]),
+            modified_relationship_ids=modified_entity_ids['relationship']
+        )
 
-            lifecycle.uninstall_node_instances(
-                graph=graph,
-                node_instances=to_uninstall,
-                ignore_failure=ignore_failure,
-                related_nodes=set(
-                    instances_by_change['remove_target_instance_ids'][1])
-            )
+        lifecycle.uninstall_node_instances(
+            graph=graph,
+            node_instances=to_uninstall,
+            ignore_failure=ignore_failure,
+            related_nodes=set(
+                instances_by_change['remove_target_instance_ids'][1])
+        )
 
-        _uninstall_nodes()
-        _uninstall_plugins_on_agent()
+        _handle_plugin_after_update(
+            ctx, modified_entity_ids['plugin'], 'remove'
+        )
 
     def _reinstall():
         subgraph = set([])
@@ -137,39 +147,65 @@ def smart_update(ctx,
                                            related_nodes=intact_nodes,
                                            ignore_failure=ignore_failure)
 
-    def _uninstall_plugins_on_agent():
-        if not update_plugins:
+    def _preupdate():
+        if not preupdate:
             return
+        lifecycle.execute_preupdate_unlink_relationships(
+            graph=graph,
+            # TODO: node_instances & modified_relationship_ids ??
+            node_instances=set(to_preupdate),
+            modified_relationship_ids=modified_entity_ids['relationship']
+        )
+
+        lifecycle.preupdate_node_instances(
+            graph=graph,
+            # TODO: node_instances & related_nodes ??
+            node_instances=to_preupdate,
+            ignore_failure=ignore_failure,
+            related_nodes=set(to_preupdate)
+        )
+
         _handle_plugin_after_update(
-            ctx, modified_entity_ids['plugin'], 'remove')
+            ctx, modified_entity_ids['plugin'], 'remove'
+        )
 
-    def _install_plugins_on_agent():
-        if not update_plugins:
+    def _update():
+        if not update:
             return
-        _handle_plugin_after_update(
-            ctx, modified_entity_ids['plugin'], 'add')
+        # TODO: execute_operation(update)
 
-    def _update_central_plugins():
-        if not update_plugins:
+    def _postupdate():
+        if not postupdate:
             return
-        sequence = graph.sequence()
-        add_plugins_to_uninstall(ctx, central_plugins_to_uninstall, sequence)
-        add_plugins_to_install(ctx, central_plugins_to_install, sequence)
-        graph.execute()
+        # Adding nodes or node instances should be based on modified instances
+        lifecycle.install_node_instances(
+            graph=graph,
+            # TODO: node_instances & related_nodes ??
+            node_instances=to_postupdate,
+            related_nodes=set(to_postupdate)
+        )
 
-    if install_first:
-        _install()
-        _uninstall()
-    else:
-        _uninstall()
-        _install()
+        # This one as well.
+        lifecycle.execute_establish_relationships(
+            graph=graph,
+            # TODO: node_instances & modified_relationship_ids ??
+            node_instances=set(to_postupdate),
+            modified_relationship_ids=modified_entity_ids['relationship']
+        )
+
+        _handle_plugin_after_update(ctx, modified_entity_ids['plugin'], 'add')
+
+    _uninstall()
+    _preupdate()
+    _update()
     _reinstall()
-
-    _update_central_plugins()
+    _postupdate()
+    _install()
 
     # Finalize the commit (i.e. remove relationships or nodes)
-    client = get_rest_client()
-    client.deployment_updates.finalize_commit(update_id)
+    if update_id is not None:
+        client = get_rest_client()
+        client.deployment_updates.finalize_commit(update_id)
 
 def _handle_plugin_after_update(ctx, plugins_list, action):
     """ Either install or uninstall plugins on the relevant hosts """
@@ -192,9 +228,9 @@ def _handle_plugin_after_update(ctx, plugins_list, action):
     # we reorganize it into: {node_id: [list_of_plugins], ...}
     node_to_plugins_map = {}
     for node, plugin in plugins_to_handle:
-        plugin_list = node_to_plugins_map.setdefault(node, [])
-        if plugin not in plugin_list:
-            plugin_list.append(plugin)
+        node_list = node_to_plugins_map.setdefault(node, [])
+        if plugin not in node_list:
+            node_list.append(plugin)
 
     for node_id, plugins in node_to_plugins_map.items():
         if not plugins:

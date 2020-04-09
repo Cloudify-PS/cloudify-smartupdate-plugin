@@ -4,7 +4,7 @@ plugins:
 
 workflows:
   smart_update:
-    mapping: cloudify_smart_update.plugin.tasks.smart_update
+    mapping: cloudify_smart_update.plugin.workflows.smart_update
     parameters:
       update_id:
         default: ''
