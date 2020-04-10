@@ -26,18 +26,18 @@ from constants import UPDATE_OPERATION,
 
 @workflow
 def smart_update(ctx,
-           update_id,
-           added_instance_ids,
-           added_target_instances_ids,
-           removed_instance_ids,
-           remove_target_instance_ids,
-           modified_entity_ids,
-           extended_instance_ids,
-           extend_target_instance_ids,
-           reduced_instance_ids,
-           reduce_target_instance_ids,
-           skip_install,
-           skip_uninstall,
+           update_id=None,
+           added_instance_ids=[],
+           added_target_instances_ids=[],
+           removed_instance_ids=[],
+           remove_target_instance_ids=[],
+           modified_entity_ids=[],
+           extended_instance_ids=[],
+           extend_target_instance_ids=[],
+           reduced_instance_ids=[],
+           reduce_target_instance_ids=[],
+           skip_install=False,
+           skip_uninstall=False,
            ignore_failure=False,
            node_instances_to_reinstall=None,
            preupdate=False,
@@ -48,23 +48,16 @@ def smart_update(ctx,
     to_update = []
     to_postupdate = []
 
+    for node_instance in ctx.node_instances:
+        if  PREUPDATE_OPERATIONS in node_instance.node.operations:
+            to_preupdate.append(node_instance)
+        if  POSTUPDATE_OPERATION in node_instance.node.operations:
+            to_postupdate.append(node_instance)
+
     for node_instance_to_reinstall in node_instances_to_reinstall:
-        remove_from_reinstall = False
-
-        if  PREUPDATE_OPERATIONS in node_instance_to_reinstall.node.operations:
-            remove_from_reinstall = True
-            to_preupdate.append(node_instance_to_reinstall)
-
         if  UPDATE_OPERATION in node_instance_to_reinstall.node.operations:
-            remove_from_reinstall = True
-            to_update.append(node_instance_to_reinstall)
-
-        if  POSTUPDATE_OPERATION in node_instance_to_reinstall.node.operations:
-            remove_from_reinstall = True
-            to_postupdate.append(node_instance_to_reinstall)
-
-        if remove_from_reinstall:
             node_instances_to_reinstall.remove(node_instance_to_reinstall)
+            to_update.append(node_instance_to_reinstall)
 
     instances_by_change = {
         'added_instances': (added_instance_ids, []),
@@ -153,16 +146,18 @@ def smart_update(ctx,
         lifecycle.execute_preupdate_unlink_relationships(
             graph=graph,
             # TODO: node_instances & modified_relationship_ids ??
-            node_instances=set(to_preupdate),
+            node_instances=set(
+                instances_by_change['reduced_and_target_instances'][1]),
             modified_relationship_ids=modified_entity_ids['relationship']
         )
 
         lifecycle.preupdate_node_instances(
             graph=graph,
-            # TODO: node_instances & related_nodes ??
+            # TODO: related_nodes ??
             node_instances=to_preupdate,
             ignore_failure=ignore_failure,
-            related_nodes=set(to_preupdate)
+            related_nodes=set(
+                instances_by_change['remove_target_instance_ids'][1])
         )
 
         _handle_plugin_after_update(
@@ -180,16 +175,18 @@ def smart_update(ctx,
         # Adding nodes or node instances should be based on modified instances
         lifecycle.install_node_instances(
             graph=graph,
-            # TODO: node_instances & related_nodes ??
+            # TODO: related_nodes ??
             node_instances=to_postupdate,
-            related_nodes=set(to_postupdate)
+            related_nodes=set(
+                instances_by_change['added_target_instances_ids'][1])
         )
 
         # This one as well.
         lifecycle.execute_establish_relationships(
             graph=graph,
             # TODO: node_instances & modified_relationship_ids ??
-            node_instances=set(to_postupdate),
+            node_instances=set(
+                instances_by_change['extended_and_target_instances'][1]),
             modified_relationship_ids=modified_entity_ids['relationship']
         )
 
