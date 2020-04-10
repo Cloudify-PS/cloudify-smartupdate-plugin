@@ -20,7 +20,7 @@ from cloudify.decorators import workflow
 from cloudify.manager import get_rest_client
 
 from . import lifecycle
-from constants import UPDATE_OPERATION,
+from .constants import UPDATE_OPERATION,
     PREUPDATE_OPERATIONS,
     POSTUPDATE_OPERATIONS
 
@@ -124,17 +124,25 @@ def smart_update(ctx,
             ctx, modified_entity_ids['plugin'], 'remove'
         )
 
-    def _reinstall():
+    def _get_subgraph(node_instances_list):
         subgraph = set([])
-        for node_instance_id in node_instances_to_reinstall:
+        for node_instance_id in node_instances_list:
             subgraph |= ctx.get_node_instance(
                 node_instance_id).get_contained_subgraph()
         subgraph -= to_uninstall
-        intact_nodes = set(ctx.node_instances) - subgraph - to_uninstall
         for n in subgraph:
             for r in n._relationship_instances:
                 if r in removed_instance_ids:
                     n._relationship_instances.pop(r)
+        return subgraph
+
+    def _get_intact_nodes(subgraph):
+        intact_nodes = set(ctx.node_instances) - subgraph - to_uninstall
+        return intact_nodes
+
+    def _reinstall():
+        subgraph = _get_subgraph(node_instances_to_reinstall)
+        intact_nodes = _get_intact_nodes(subgraph)
         lifecycle.reinstall_node_instances(graph=graph,
                                            node_instances=subgraph,
                                            related_nodes=intact_nodes,
@@ -143,54 +151,36 @@ def smart_update(ctx,
     def _preupdate():
         if not preupdate:
             return
-        lifecycle.execute_preupdate_unlink_relationships(
-            graph=graph,
-            # TODO: node_instances & modified_relationship_ids ??
-            node_instances=set(
-                instances_by_change['reduced_and_target_instances'][1]),
-            modified_relationship_ids=modified_entity_ids['relationship']
-        )
-
+        subgraph = _get_subgraph(to_preupdate)
+        intact_nodes = _get_intact_nodes(subgraph)
         lifecycle.preupdate_node_instances(
             graph=graph,
-            # TODO: related_nodes ??
-            node_instances=to_preupdate,
-            ignore_failure=ignore_failure,
-            related_nodes=set(
-                instances_by_change['remove_target_instance_ids'][1])
-        )
-
-        _handle_plugin_after_update(
-            ctx, modified_entity_ids['plugin'], 'remove'
+            node_instances=subgraph,
+            related_nodes=intact_nodes,
+            ignore_failure=ignore_failure
         )
 
     def _update():
         if not update:
             return
-        # TODO: execute_operation(update)
+        subgraph = _get_subgraph(to_update)
+        intact_nodes = _get_intact_nodes(subgraph)
+        lifecycle.postupdate_node_instances(
+            graph=graph,
+            node_instances=subgraph,
+            related_nodes=intact_nodes
+        )
 
     def _postupdate():
         if not postupdate:
             return
-        # Adding nodes or node instances should be based on modified instances
-        lifecycle.install_node_instances(
+        subgraph = _get_subgraph(to_postupdate)
+        intact_nodes = _get_intact_nodes(subgraph)
+        lifecycle.postupdate_node_instances(
             graph=graph,
-            # TODO: related_nodes ??
-            node_instances=to_postupdate,
-            related_nodes=set(
-                instances_by_change['added_target_instances_ids'][1])
+            node_instances=subgraph,
+            related_nodes=intact_nodes
         )
-
-        # This one as well.
-        lifecycle.execute_establish_relationships(
-            graph=graph,
-            # TODO: node_instances & modified_relationship_ids ??
-            node_instances=set(
-                instances_by_change['extended_and_target_instances'][1]),
-            modified_relationship_ids=modified_entity_ids['relationship']
-        )
-
-        _handle_plugin_after_update(ctx, modified_entity_ids['plugin'], 'add')
 
     _uninstall()
     _preupdate()

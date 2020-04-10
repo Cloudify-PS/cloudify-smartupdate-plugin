@@ -40,13 +40,6 @@ def uninstall_node_instances(graph,
     processor.uninstall()
 
 
-def postupdate_node_instances(graph, node_instances, related_nodes=None):
-    processor = SmartUpdateLifecycleProcessor(graph=graph,
-                                   node_instances=node_instances,
-                                   related_nodes=related_nodes)
-    processor.postupdate()
-
-
 def preupdate_node_instances(graph,
                              node_instances,
                              ignore_failure,
@@ -56,6 +49,20 @@ def preupdate_node_instances(graph,
                                    ignore_failure=ignore_failure,
                                    related_nodes=related_nodes)
     processor.preupdate()
+
+
+def update_node_instances(graph, node_instances, related_nodes=None):
+    processor = SmartUpdateLifecycleProcessor(graph=graph,
+                                   node_instances=node_instances,
+                                   related_nodes=related_nodes)
+    processor.update()
+
+
+def postupdate_node_instances(graph, node_instances, related_nodes=None):
+    processor = SmartUpdateLifecycleProcessor(graph=graph,
+                                   node_instances=node_instances,
+                                   related_nodes=related_nodes)
+    processor.postupdate()
 
 
 def reinstall_node_instances(graph,
@@ -71,7 +78,7 @@ def reinstall_node_instances(graph,
     processor.install()
 
 
-def execute_postupdate_establish_relationships(graph,
+def execute_establish_relationships(graph,
                                     node_instances,
                                     related_nodes=None,
                                     modified_relationship_ids=None):
@@ -80,10 +87,10 @@ def execute_postupdate_establish_relationships(graph,
         related_nodes=node_instances,
         modified_relationship_ids=modified_relationship_ids,
         name_prefix='establish')
-    processor.postupdate()
+    processor.install()
 
 
-def execute_preupdate_unlink_relationships(graph,
+def execute_unlink_relationships(graph,
                                  node_instances,
                                  related_nodes=None,
                                  modified_relationship_ids=None):
@@ -92,7 +99,31 @@ def execute_preupdate_unlink_relationships(graph,
         related_nodes=node_instances,
         modified_relationship_ids=modified_relationship_ids,
         name_prefix='unlink')
-    processor.preupdate()
+    processor.uninstall()
+
+
+# def execute_postupdate_establish_relationships(graph,
+#                                     node_instances,
+#                                     related_nodes=None,
+#                                     modified_relationship_ids=None):
+#     processor = SmartUpdateLifecycleProcessor(
+#         graph=graph,
+#         related_nodes=node_instances,
+#         modified_relationship_ids=modified_relationship_ids,
+#         name_prefix='establish')
+#     processor.postupdate()
+#
+#
+# def execute_preupdate_unlink_relationships(graph,
+#                                  node_instances,
+#                                  related_nodes=None,
+#                                  modified_relationship_ids=None):
+#     processor = SmartUpdateLifecycleProcessor(
+#         graph=graph,
+#         related_nodes=node_instances,
+#         modified_relationship_ids=modified_relationship_ids,
+#         name_prefix='unlink')
+#     processor.preupdate()
 
 
 class SmartUpdateLifecycleProcessor(object):
@@ -135,6 +166,14 @@ class SmartUpdateLifecycleProcessor(object):
             graph_finisher_func=self._finish_preupdate)
         graph.execute()
 
+    def update(self):
+        graph = self._process_node_instances(
+            workflow_ctx,
+            name=self._name_prefix + 'update',
+            node_instance_subgraph_func=update_node_instance_subgraph,
+            graph_finisher_func=self._finish_update)
+        graph.execute()
+
     def postupdate(self):
         graph = self._process_node_instances(
             workflow_ctx,
@@ -175,19 +214,26 @@ class SmartUpdateLifecycleProcessor(object):
             intact_op='cloudify.interfaces.relationship_lifecycle.unlink',
             install=False)
 
-    def _finish_postupdate(self, graph, subgraphs):
-        self._finish_subgraphs(
-            graph=graph,
-            subgraphs=subgraphs,
-            intact_op='cloudify.interfaces.relationship_postupdate.establish',
-            install=True)
-
     def _finish_preupdate(self, graph, subgraphs):
         self._finish_subgraphs(
             graph=graph,
             subgraphs=subgraphs,
             intact_op='cloudify.interfaces.relationship_preupdate.unlink',
             install=False)
+
+    def _finish_update(self, graph, subgraphs):
+        self._finish_subgraphs(
+            graph=graph,
+            subgraphs=subgraphs,
+            intact_op='cloudify.interfaces.relationship_update.update',
+            install=False)
+
+    def _finish_postupdate(self, graph, subgraphs):
+        self._finish_subgraphs(
+            graph=graph,
+            subgraphs=subgraphs,
+            intact_op='cloudify.interfaces.relationship_postupdate.establish',
+            install=True)
 
     def _finish_subgraphs(self, graph, subgraphs, intact_op, install):
         # Create task dependencies based on node relationships
@@ -555,6 +601,48 @@ def preupdate_node_instance_subgraph(instance, graph, ignore_failure=False):
         subgraph.on_failure = get_subgraph_on_failure_handler(
             instance, uninstall_node_instance_subgraph)
 
+    return subgraph
+
+
+def update_node_instance_subgraph(instance, graph, **kwargs):
+    subgraph = graph.subgraph('update_{0}'.format(instance.id))
+    sequence = subgraph.sequence()
+    tasks = []
+    update = _skip_nop_operations(
+        pre=forkjoin(instance.send_event('Updating node instance'),
+                     instance.set_state('updating')),
+        task=instance.execute_operation(
+            'cloudify.interfaces.update.update'),
+        post=forkjoin(instance.send_event('Node instance updated'),
+                      instance.set_state('updated')))
+    relationship_update = _skip_nop_operations(
+        pre=instance.send_event('Updating relationships'),
+        task=_relationships_operations(
+            subgraph,
+            instance,
+            'cloudify.interfaces.relationship_update.update'
+        ),
+        post=instance.send_event('Relationships updated')
+    )
+    if any([update, relationship_update]):
+        tasks = (
+            [instance.set_state('initializing')] +
+            (update or
+             [instance.send_event('Updating node instance: nothing to do')]) +
+            relationship_update +
+            [forkjoin(
+                instance.set_state('started'),
+                instance.send_event('Node instance started')
+            )]
+        )
+    else:
+        tasks = [forkjoin(
+            instance.set_state('started'),
+            instance.send_event('Node instance started (nothing to do)')
+        )]
+
+    sequence.add(*tasks)
+    subgraph.on_failure = get_subgraph_on_failure_handler(instance)
     return subgraph
 
 
