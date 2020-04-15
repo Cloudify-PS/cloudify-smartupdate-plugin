@@ -226,7 +226,7 @@ class SmartUpdateLifecycleProcessor(object):
             graph=graph,
             subgraphs=subgraphs,
             intact_op='cloudify.interfaces.relationship_update.update',
-            install=False)
+            install=True)
 
     def _finish_postupdate(self, graph, subgraphs):
         self._finish_subgraphs(
