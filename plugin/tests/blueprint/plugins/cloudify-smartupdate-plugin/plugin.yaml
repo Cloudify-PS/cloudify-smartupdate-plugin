@@ -3,7 +3,7 @@ plugins:
     executor: central_deployment_agent
     package_name: cloudify-smartupdate-plugin
     package_version: '1.0'
-    # source: cloudify-smartupdate-plugin
+    source: cloudify-smartupdate-plugin
 
 
 workflows:
@@ -48,7 +48,6 @@ workflows:
         default: true
       postupdate:
         default: true
-
 
 node_types:
   cloudify.nodes.SmartRoot:

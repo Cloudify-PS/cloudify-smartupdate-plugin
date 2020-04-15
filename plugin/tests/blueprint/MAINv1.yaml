@@ -1,0 +1,44 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+  - plugins/cloudify-smartupdate-plugin/plugin.yaml
+
+node_templates:
+
+  DeploymentProxyA:
+    type: cloudify.nodes.SmartDeploymentProxy
+    properties:
+      resource_config:
+        blueprint:
+          external_resource: True
+          id: Av1
+        deployment:
+          id: Av1
+
+  DeploymentProxyB:
+    type: cloudify.nodes.SmartDeploymentProxy
+    properties:
+      resource_config:
+        blueprint:
+          external_resource: True
+          id: Bv1
+        deployment:
+          id: Bv1
+    relationships:
+      - type: cloudify.relationships.smart_connected_to
+        target: DeploymentProxyA
+
+
+  DeploymentProxyC:
+    type: cloudify.nodes.SmartDeploymentProxy
+    properties:
+      resource_config:
+        blueprint:
+          external_resource: True
+          id: Cv1
+        deployment:
+          id: Cv1
+    relationships:
+      - type: cloudify.relationships.smart_connected_to
+        target: DeploymentProxyB

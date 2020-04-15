@@ -1,0 +1,16 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+  - plugins/cloudify-smartupdate-plugin/plugin.yaml
+
+node_templates:
+
+  AA:
+    type: cloudify.nodes.Root
+
+  AB:
+    type: cloudify.nodes.SmartRoot
+    relationships:
+      - type: cloudify.relationships.smart_connected_to
+        target: AA
