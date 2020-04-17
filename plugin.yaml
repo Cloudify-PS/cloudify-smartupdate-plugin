@@ -7,15 +7,15 @@ plugins:
 
 
 workflows:
-  smart_update:
+  smart_preupdate:
     mapping: cloudify_smart_update.plugin.workflows.smart_update
     parameters:
       update_id:
-        default: ''
+        default: ~
       skip_install:
-        default: false
+        default: true
       skip_uninstall:
-        default: false
+        default: true
       added_instance_ids:
         default: []
       added_target_instances_ids:
@@ -25,7 +25,7 @@ workflows:
       remove_target_instance_ids:
         default: []
       modified_entity_ids:
-        default: []
+        default: {}
       extended_instance_ids:
         default: []
       extend_target_instance_ids:
@@ -45,9 +45,165 @@ workflows:
       preupdate:
         default: true
       update:
+        default: false
+      postupdate:
+        default: false
+  smart_update:
+    mapping: cloudify_smart_update.plugin.workflows.smart_update
+    parameters:
+      update_id:
+        default: ~
+      skip_install:
+        default: false
+      skip_uninstall:
+        default: false
+      added_instance_ids:
+        default: []
+      added_target_instances_ids:
+        default: []
+      removed_instance_ids:
+        default: []
+      remove_target_instance_ids:
+        default: []
+      modified_entity_ids:
+        default: {}
+      extended_instance_ids:
+        default: []
+      extend_target_instance_ids:
+        default: []
+      reduced_instance_ids:
+        default: []
+      reduce_target_instance_ids:
+        default: []
+      ignore_failure:
+        default: false
+        type: boolean
+      install_first:
+        default: false
+        type: boolean
+      node_instances_to_reinstall:
+        default: []
+      preupdate:
+        default: false
+      update:
         default: true
       postupdate:
+        default: false
+  smart_postupdate:
+    mapping: cloudify_smart_update.plugin.workflows.smart_update
+    parameters:
+      update_id:
+        default: ~
+      skip_install:
         default: true
+      skip_uninstall:
+        default: true
+      added_instance_ids:
+        default: []
+      added_target_instances_ids:
+        default: []
+      removed_instance_ids:
+        default: []
+      remove_target_instance_ids:
+        default: []
+      modified_entity_ids:
+        default: {}
+      extended_instance_ids:
+        default: []
+      extend_target_instance_ids:
+        default: []
+      reduced_instance_ids:
+        default: []
+      reduce_target_instance_ids:
+        default: []
+      ignore_failure:
+        default: false
+        type: boolean
+      install_first:
+        default: false
+        type: boolean
+      node_instances_to_reinstall:
+        default: []
+      preupdate:
+        default: false
+      update:
+        default: false
+      postupdate:
+        default: true
+
+data_types:
+
+  cloudify.datatypes.SmartBlueprint:
+    properties:
+      external_resource:
+        description: >
+          Use external resource.
+        default: false
+      id:
+        description: >
+          This is the blueprint that the deployment node is a proxy to.
+        required: false
+      main_file_name:
+        description: >
+          The application blueprint filename. If the blueprint consists many
+          imported files this is the main blueprint.
+        default: blueprint.yaml
+      blueprint_archive:
+        description: >
+          The URL of a .zip to upload to the manager.
+          (Can be skipped if external_resource == True)
+        default: ""
+        required: true
+
+  cloudify.datatypes.SmartDeployment:
+    properties:
+      external_resource:
+        description: >
+          Use external resource.
+        default: false
+      id:
+        description: >
+          This is the deployment that the node is a proxy to.
+        required: false
+      inputs:
+        description: >
+          The inputs to the deployment.
+        default: {}
+      outputs:
+        description: >
+          A dictionary of "{ key: value, key: value }".
+          Get "key" the deployment.
+          Set "value" runtime property to the value of the output.
+        required: false
+      all_outputs:
+        description: >
+          Ignored if "outputs" is specified.
+          Otherwise, if true (the default), then all outputs from the remote
+          deployment are exposed. If false, then no output is exposed.
+        type: boolean
+        required: false
+        default: true
+      logs:
+        description: >
+          Logs redirect settings, by default {redirect: true}
+        required: false
+
+  cloudify.datatypes.SmartDeploymentProxy:
+    properties:
+      blueprint:
+        type: cloudify.datatypes.SmartBlueprint
+        required: true
+      deployment:
+        type: cloudify.datatypes.SmartDeployment
+        required: true
+      executions_start_args:
+        default: {}
+        description: >
+          Optional parems for executions
+      reexecute:
+        default: false
+        description: >
+          Reexecte workflows, on external deployment
 
 
 node_types:
@@ -64,8 +220,136 @@ node_types:
         configure: cloudify_smart_update.plugin.tasks.get_operation_name
         start: cloudify_smart_update.plugin.tasks.get_operation_name
 
-  # cloudify.nodes.SmartDeploymentProxy:
-  #   derived_from: cloudify.nodes.DeploymentProxy
+  cloudify.nodes.SmartDeploymentProxy:
+    derived_from: cloudify.nodes.Root
+    properties:
+      resource_config:
+        type: cloudify.datatypes.SmartDeploymentProxy
+        default: {}
+      client:
+        description: >
+          Client configuration, if empty will be reused manager client:
+            host: Host of Cloudify's management machine.
+            port: Port of REST API service on management machine.
+            protocol: Protocol of REST API service on management machine,
+                      defaults to http.
+            api_version: version of REST API service on management machine.
+            headers: Headers to be added to request.
+            query_params: Query parameters to be added to the request.
+            cert: Path to a copy of the server's self-signed certificate.
+            trust_all: if `False`, the server's certificate
+                       (self-signed or not) will be verified.
+            username: Cloudify User username.
+            password: Cloudify User password.
+            token: Cloudify User token.
+            tenant: Cloudify Tenant name.
+        default: {}
+      plugins:
+        description: >
+          Optional, list of plugins for upload.
+            wagon_path: Url for plugin wagon file.
+            plugin_yaml_path: Url for plugin yaml file.
+        default: []
+      secrets:
+        description: >
+          Optional, dictionary of secrets for set before run deployments.
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: cloudify_smart_update.deployment_proxy.tasks.upload_blueprint
+        configure:
+          implementation: cloudify_smart_update.deployment_proxy.tasks.create_deployment
+        start:
+          implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
+          inputs:
+            workflow_id:
+              type: string
+              default: install
+            timeout:
+              type: integer
+              description: How long (in seconds) to wait for execution to finish before timing out
+              default: 1800
+            interval:
+              type: integer
+              description: Polling interval (seconds)
+              default: 10
+        stop:
+          implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
+          inputs:
+            workflow_id:
+              default: uninstall
+            resource_config:
+              default:
+                blueprint: { get_property: [ SELF, resource_config, blueprint ] }
+                deployment: { get_property: [ SELF, resource_config, deployment ] }
+                reexecute: { get_property: [ SELF, resource_config, reexecute ] }
+                executions_start_args:
+                  allow_custom_parameters: true
+                  parameters:
+                    ignore_failure: true
+        delete:
+          implementation: cloudify_smart_update.deployment_proxy.tasks.delete_deployment
+      cloudify.interfaces.preupdate:
+        stop:
+          implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
+          inputs:
+            workflow_id:
+              default: smart_update
+            resource_config:
+              default:
+                blueprint: { get_property: [ SELF, resource_config, blueprint ] }
+                deployment: { get_property: [ SELF, resource_config, deployment ] }
+                reexecute: { get_property: [ SELF, resource_config, reexecute ] }
+                executions_start_args:
+                  allow_custom_parameters: true
+                  parameters:
+                    node_instances_to_reinstall: []
+                    skip_install: True
+                    skip_uninstall: True
+                    preupdate: True
+                    update: False
+                    postupdate: False
+        delete: {}
+      cloudify.interfaces.update:
+        update:
+          implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
+          inputs:
+            workflow_id:
+              default: smart_update
+            resource_config:
+              default:
+                blueprint: { get_property: [ SELF, resource_config, blueprint ] }
+                deployment: { get_property: [ SELF, resource_config, deployment ] }
+                reexecute: { get_property: [ SELF, resource_config, reexecute ] }
+                executions_start_args:
+                  allow_custom_parameters: true
+                  parameters:
+                    preupdate: False
+                    update: True
+                    postupdate: False
+      cloudify.interfaces.postupdate:
+        create: {}
+        configure: {}
+        start:
+          implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
+          inputs:
+            workflow_id:
+              default: smart_update
+            resource_config:
+              default:
+                blueprint: { get_property: [ SELF, resource_config, blueprint ] }
+                deployment: { get_property: [ SELF, resource_config, deployment ] }
+                reexecute: { get_property: [ SELF, resource_config, reexecute ] }
+                executions_start_args:
+                  allow_custom_parameters: true
+                  parameters:
+                    node_instances_to_reinstall: []
+                    skip_install: True
+                    skip_uninstall: True
+                    preupdate: False
+                    update: False
+                    postupdate: True
 
 
 relationships:

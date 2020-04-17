@@ -32,7 +32,10 @@ setup(
     ''',
 
     # This must correspond to the actual packages in the plugin.
-    packages=['plugin'],
+    packages=[
+        'plugin',
+        'deployment_proxy'
+    ],
 
     license='LICENSE',
     zip_safe=False,

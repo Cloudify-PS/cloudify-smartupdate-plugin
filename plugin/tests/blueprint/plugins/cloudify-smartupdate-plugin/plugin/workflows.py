@@ -29,7 +29,7 @@ def smart_update(ctx,
            added_target_instances_ids=[],
            removed_instance_ids=[],
            remove_target_instance_ids=[],
-           modified_entity_ids=[],
+           modified_entity_ids={},
            extended_instance_ids=[],
            extend_target_instance_ids=[],
            reduced_instance_ids=[],
@@ -57,9 +57,11 @@ def smart_update(ctx,
                 for postupdate_op in POSTUPDATE_OPERATIONS):
             to_postupdate.append(node_instance.id)
 
-    for node_instance_to_reinstall in node_instances_to_reinstall:
+    for node_instance_to_reinstall_id in node_instances_to_reinstall:
+        node_instance_to_reinstall = ctx.get_node_instance(
+            node_instance_to_reinstall_id)
         if  UPDATE_OPERATION in node_instance_to_reinstall.node.operations:
-            node_instances_to_reinstall.remove(node_instance_to_reinstall)
+            node_instances_to_reinstall.remove(node_instance_to_reinstall_id)
 
     # for debugging
     ctx.logger.debug('to_preupdate: {}'.format(to_preupdate))
