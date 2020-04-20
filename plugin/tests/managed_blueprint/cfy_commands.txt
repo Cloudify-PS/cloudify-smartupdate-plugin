@@ -10,6 +10,8 @@ cfy blueprint upload -b Cv2 Cv2.yaml
 cfy blueprint upload -b MAINv2 MAINv2.yaml
 
 cfy uninstall MAINv1 -p ignore_failure=true
+cfy uninstall Bv1 -p ignore_failure=true
+cfy uninstall Cv1 -p ignore_failure=true
 
 cfy blueprint delete MAINv1
 cfy blueprint delete Av1

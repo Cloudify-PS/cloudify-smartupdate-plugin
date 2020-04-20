@@ -662,3 +662,14 @@ class DeploymentProxyBase(object):
             self.workflow_id,
             self.execution_id,
             _log_redirect=self.deployment_logs.get('redirect', True))
+
+    def verify_update_successful(self):
+        return poll_update_after_execute(
+            self.timeout,
+            self.interval,
+            self.client,
+            self.deployment_id,
+            self.workflow_state,
+            self.workflow_id,
+            self.execution_id,
+            _log_redirect=self.deployment_logs.get('redirect', True))
