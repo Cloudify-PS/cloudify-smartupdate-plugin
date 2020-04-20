@@ -50,6 +50,7 @@ from .polling import (
     any_dep_by_id,
     poll_with_timeout,
     poll_workflow_after_execute,
+    poll_update_after_execute,
     dep_system_workflows_finished
 )
 from .utils import (
