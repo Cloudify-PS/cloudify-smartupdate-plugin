@@ -313,21 +313,24 @@ node_types:
         delete: {}
       cloudify.interfaces.update:
         update:
-          implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
+          implementation: cloudify_smart_update.deployment_proxy.tasks.execute_deployment_update
           inputs:
-            workflow_id:
-              default: smart_update
             resource_config:
               default:
                 blueprint: { get_property: [ SELF, resource_config, blueprint ] }
                 deployment: { get_property: [ SELF, resource_config, deployment ] }
                 reexecute: { get_property: [ SELF, resource_config, reexecute ] }
                 executions_start_args:
-                  allow_custom_parameters: true
-                  parameters:
-                    preupdate: False
-                    update: True
-                    postupdate: False
+                  blueprint_id: { get_property: [ SELF, resource_config, blueprint, id ] }
+                  skip_install: False
+                  skip_uninstall: False
+                  skip_reinstall: False
+                  force: True
+                  ignore_failure: False
+                  install_first: False
+                  inputs: { get_property: [ SELF, resource_config, deployment, inputs ] }
+                  reinstall_list: []
+                  workflow_id: smart_update
       cloudify.interfaces.postupdate:
         create: {}
         configure: {}

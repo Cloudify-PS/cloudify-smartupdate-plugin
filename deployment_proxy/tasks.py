@@ -41,3 +41,9 @@ def delete_deployment(operation, **_):
 @utils.proxy_operation('execute_workflow')
 def execute_start(operation, **_):
     return getattr(DeploymentProxyBase(_), operation)()
+
+
+@operation(resumable=True)
+@utils.proxy_operation('execute_deployment_update')
+def execute_deployment_update(operation, **_):
+    return getattr(DeploymentProxyBase(_), operation)()

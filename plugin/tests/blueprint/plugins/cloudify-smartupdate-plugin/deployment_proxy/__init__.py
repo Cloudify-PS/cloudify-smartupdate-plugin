@@ -19,8 +19,9 @@ from six.moves.urllib.parse import urlparse
 
 from cloudify import ctx
 from cloudify import manager
-from cloudify.exceptions import NonRecoverableError
+from cloudify.exceptions import NonRecoverableError, RecoverableError
 from cloudify_rest_client.client import CloudifyClient
+from cloudify_rest_client.deployment_updates import DeploymentUpdatesClient
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify.utils import exception_to_error_cause
 
@@ -36,6 +37,7 @@ from .constants import (
     BP_DELETE,
     DEP_CREATE,
     DEP_GET,
+    DEP_UPDATE,
     DEP_DELETE,
     EXEC_START,
     EXEC_LIST,
@@ -493,6 +495,92 @@ class DeploymentProxyBase(object):
             # Poll for execution success.
             if not self.verify_execution_successful():
                 ctx.logger.error('Deployment error.')
+
+            ctx.logger.debug('Polling execution succeeded')
+
+        type_hierarchy = ctx.node.type_hierarchy
+        if NIP_TYPE in type_hierarchy:
+            ctx.logger.info('Start post execute node proxy')
+            return self.post_execute_node_instance_proxy()
+
+        elif DEP_TYPE in type_hierarchy:
+            ctx.logger.info('Start post execute deployment proxy')
+            return self.post_execute_deployment_proxy()
+
+        raise NonRecoverableError(
+            'Unsupported node type provided {0}'.format(ctx.node.type))
+
+    def execute_deployment_update(self):
+
+        if 'executions' not in ctx.instance.runtime_properties.keys():
+            ctx.instance.runtime_properties['executions'] = dict()
+
+        update_attributes('executions', 'workflow_id', self.workflow_id)
+
+        # Wait for the deployment to finish any executions
+        pollster_args = \
+            dict(_client=self.client,
+                 _check_all_in_deployment=self.deployment_id)
+
+        if not poll_with_timeout(dep_system_workflows_finished,
+                                 timeout=self.timeout,
+                                 pollster_args=pollster_args,
+                                 expected_result=True):
+            return ctx.operation.retry(
+                'The deployment is not ready for execution.')
+
+        # we must to run some execution
+        if (
+            self.deployment.get(EXTERNAL_RESOURCE) and self.reexecute
+        ) or not self.deployment.get(EXTERNAL_RESOURCE):
+
+            # If the target deployment has the smart_update workflow defined,
+            # execute it
+            # If not, skip
+            client_args = \
+                dict(deployment_id=self.deployment_id)
+            deployment_response = \
+                self.dp_get_client_response('deployments',
+                                            DEP_GET, client_args)
+            ctx.logger.debug('Get deployment response: {}'.format(
+                deployment_response
+            ))
+            workflows_names_list = []
+            for workflow in deployment_response.get('workflows'):
+                workflows_names_list.append(workflow.get('name'))
+            if 'smart_update' not in workflows_names_list:
+                ctx.logger.debug(
+                    """Target deployment doesn't support smart_update.
+                    Skipping."""
+                )
+                return
+
+            execution_args = self.config.get('executions_start_args', {})
+            client_args = \
+                dict(deployment_id=self.deployment_id,
+                     **execution_args)
+
+            for retry in range(0, 5):
+                try:
+                    response = self.dp_get_client_response('deployment_updates',
+                                                           DEP_UPDATE,
+                                                           client_args)
+                    break
+                except NonRecoverableError:
+                    if (retry + 1 >= 5):
+                        raise
+                    else:
+                        ctx.logger.debug(
+                            'Deployment Update failed. Retry {}/5'.format(
+                                retry + 1))
+
+            # Set the execution_id for the last execution process created
+            self.execution_id = response['id']
+            ctx.logger.debug('Executions start response: {0}'.format(response))
+
+            # Poll for execution success.
+            if not self.verify_update_successful():
+                ctx.logger.error('Deployment update error.')
 
             ctx.logger.debug('Polling execution succeeded')
 
