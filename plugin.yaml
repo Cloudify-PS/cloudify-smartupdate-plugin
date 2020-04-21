@@ -3,54 +3,12 @@ plugins:
     executor: central_deployment_agent
     package_name: cloudify-smartupdate-plugin
     package_version: '1.0'
-    # source: cloudify-smartupdate-plugin
 
 
 workflows:
-  smart_preupdate:
-    mapping: cloudify_smart_update.plugin.workflows.smart_update
-    parameters:
-      update_id:
-        default: ~
-      skip_install:
-        default: true
-      skip_uninstall:
-        default: true
-      added_instance_ids:
-        default: []
-      added_target_instances_ids:
-        default: []
-      removed_instance_ids:
-        default: []
-      remove_target_instance_ids:
-        default: []
-      modified_entity_ids:
-        default: {}
-      extended_instance_ids:
-        default: []
-      extend_target_instance_ids:
-        default: []
-      reduced_instance_ids:
-        default: []
-      reduce_target_instance_ids:
-        default: []
-      ignore_failure:
-        default: false
-        type: boolean
-      install_first:
-        default: false
-        type: boolean
-      node_instances_to_reinstall:
-        default: []
-      preupdate:
-        default: true
-      update:
-        default: false
-      postupdate:
-        default: false
   smart_update:
     mapping: cloudify_smart_update.plugin.workflows.smart_update
-    parameters:
+    parameters: &smart_update_parameters
       update_id:
         default: ~
       skip_install:
@@ -84,46 +42,43 @@ workflows:
       node_instances_to_reinstall:
         default: []
       preupdate:
+        default: true
+      update:
+        default: true
+      postupdate:
+        default: true
+  smart_execute_preupdate:
+    mapping: cloudify_smart_update.plugin.workflows.smart_update
+    parameters:
+      <<: *smart_update_parameters
+      skip_install:
+        default: true
+      skip_uninstall:
+        default: true
+      preupdate:
+        default: true
+      update:
+        default: false
+      postupdate:
+        default: false
+  smart_execute_update:
+    mapping: cloudify_smart_update.plugin.workflows.smart_update
+    parameters:
+      <<: *smart_update_parameters
+      preupdate:
         default: false
       update:
         default: true
       postupdate:
         default: false
-  smart_postupdate:
+  smart_execute_postupdate:
     mapping: cloudify_smart_update.plugin.workflows.smart_update
     parameters:
-      update_id:
-        default: ~
+      <<: *smart_update_parameters
       skip_install:
         default: true
       skip_uninstall:
         default: true
-      added_instance_ids:
-        default: []
-      added_target_instances_ids:
-        default: []
-      removed_instance_ids:
-        default: []
-      remove_target_instance_ids:
-        default: []
-      modified_entity_ids:
-        default: {}
-      extended_instance_ids:
-        default: []
-      extend_target_instance_ids:
-        default: []
-      reduced_instance_ids:
-        default: []
-      reduce_target_instance_ids:
-        default: []
-      ignore_failure:
-        default: false
-        type: boolean
-      install_first:
-        default: false
-        type: boolean
-      node_instances_to_reinstall:
-        default: []
       preupdate:
         default: false
       update:
@@ -295,21 +250,7 @@ node_types:
           implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
           inputs:
             workflow_id:
-              default: smart_update
-            resource_config:
-              default:
-                blueprint: { get_property: [ SELF, resource_config, blueprint ] }
-                deployment: { get_property: [ SELF, resource_config, deployment ] }
-                reexecute: { get_property: [ SELF, resource_config, reexecute ] }
-                executions_start_args:
-                  allow_custom_parameters: true
-                  parameters:
-                    node_instances_to_reinstall: []
-                    skip_install: True
-                    skip_uninstall: True
-                    preupdate: True
-                    update: False
-                    postupdate: False
+              default: smart_execute_preupdate
         delete: {}
       cloudify.interfaces.update:
         update:
@@ -330,7 +271,7 @@ node_types:
                   install_first: False
                   inputs: { get_property: [ SELF, resource_config, deployment, inputs ] }
                   reinstall_list: []
-                  workflow_id: smart_update
+                  workflow_id: smart_execute_update
       cloudify.interfaces.postupdate:
         create: {}
         configure: {}
@@ -338,21 +279,7 @@ node_types:
           implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
           inputs:
             workflow_id:
-              default: smart_update
-            resource_config:
-              default:
-                blueprint: { get_property: [ SELF, resource_config, blueprint ] }
-                deployment: { get_property: [ SELF, resource_config, deployment ] }
-                reexecute: { get_property: [ SELF, resource_config, reexecute ] }
-                executions_start_args:
-                  allow_custom_parameters: true
-                  parameters:
-                    node_instances_to_reinstall: []
-                    skip_install: True
-                    skip_uninstall: True
-                    preupdate: False
-                    update: False
-                    postupdate: True
+              default: smart_execute_postupdate
 
 
 relationships:
