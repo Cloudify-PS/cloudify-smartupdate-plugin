@@ -166,6 +166,7 @@ node_types:
     derived_from: cloudify.nodes.Root
     interfaces:
       cloudify.interfaces.preupdate:
+        prestop: cloudify_smart_update.plugin.tasks.get_operation_name
         stop: cloudify_smart_update.plugin.tasks.get_operation_name
         delete: cloudify_smart_update.plugin.tasks.get_operation_name
       cloudify.interfaces.update:
@@ -174,6 +175,7 @@ node_types:
         create: cloudify_smart_update.plugin.tasks.get_operation_name
         configure: cloudify_smart_update.plugin.tasks.get_operation_name
         start: cloudify_smart_update.plugin.tasks.get_operation_name
+        poststart: cloudify_smart_update.plugin.tasks.get_operation_name
 
   cloudify.nodes.SmartDeploymentProxy:
     derived_from: cloudify.nodes.Root
@@ -246,11 +248,12 @@ node_types:
         delete:
           implementation: cloudify_smart_update.deployment_proxy.tasks.delete_deployment
       cloudify.interfaces.preupdate:
-        stop:
+        prestop:
           implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
           inputs:
             workflow_id:
               default: smart_execute_preupdate
+        stop: {}
         delete: {}
       cloudify.interfaces.update:
         update:
@@ -275,7 +278,8 @@ node_types:
       cloudify.interfaces.postupdate:
         create: {}
         configure: {}
-        start:
+        start: {}
+        poststart:
           implementation: cloudify_smart_update.deployment_proxy.tasks.execute_start
           inputs:
             workflow_id:

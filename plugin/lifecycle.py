@@ -502,10 +502,20 @@ def preupdate_node_instance_subgraph(instance, graph, ignore_failure=False):
     monitoring_stop = _skip_nop_operations(
         instance.execute_operation('cloudify.interfaces.monitoring.stop')
     )
-    if is_host_node(instance):
-        pre_stop = _host_pre_stop(instance)
+    # Taken from 5.0
+    if 'cloudify.interfaces.preupdate.prestop' in instance.node.operations:
+        prestop = _skip_nop_operations(
+            pre=instance.send_event('Prestopping node instance'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.preupdate.prestop'),
+            post=instance.send_event('Node instance prestopped'))
     else:
-        pre_stop = []
+        prestop = []
+
+    if is_host_node(instance):
+        host_pre_stop = _host_pre_stop(instance)
+    else:
+        host_pre_stop = []
 
     stop = _skip_nop_operations(
         task=instance.execute_operation('cloudify.interfaces.preupdate.stop'),
@@ -545,7 +555,8 @@ def preupdate_node_instance_subgraph(instance, graph, ignore_failure=False):
     if instance_state in ['stopped', 'deleting', 'deleted', 'uninitialized']:
         stop_message = []
         monitoring_stop = []
-        pre_stop = []
+        host_pre_stop = []
+        prestop = []
         stop = [instance.send_event(
             'Stop: instance already {0}'.format(instance_state))]
     if instance_state in ['stopped', 'deleting', 'deleted']:
@@ -560,7 +571,8 @@ def preupdate_node_instance_subgraph(instance, graph, ignore_failure=False):
     tasks = (
         stop_message +
         monitoring_stop +
-        pre_stop +
+        prestop +
+        host_pre_stop +
         (stop or
          [instance.send_event('Stopped node instance: nothing to do')]) +
         stopped_set_state +
@@ -668,9 +680,20 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
     # tasks such as waiting for it to start and installing the agent
     # worker (if necessary)
     if is_host_node(instance):
-        post_start = _host_post_start(instance)
+        host_post_start = _host_post_start(instance)
     else:
-        post_start = []
+        host_post_start = []
+
+    # Taken from 5.0.
+    if 'cloudify.interfaces.postupdate.poststart' \
+            in instance.node.operations:
+        poststart = _skip_nop_operations(
+            pre=instance.send_event('Poststarting node instance'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.postupdate.poststart'),
+            post=instance.send_event('Node instance poststarted'))
+    else:
+        poststart = []
     monitoring_start = _skip_nop_operations(
         instance.execute_operation('cloudify.interfaces.monitoring.start')
     )
@@ -683,8 +706,8 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
         ),
         post=instance.send_event('Relationships established'),
     )
-    if any([create, preconf, configure, postconf, start, post_start,
-            monitoring_start, establish]):
+    if any([create, preconf, configure, postconf, start, poststart,
+            host_post_start, monitoring_start, establish]):
         tasks = (
             [instance.set_state('initializing')] +
             (create or
@@ -696,7 +719,10 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
             postconf +
             (start or
              [instance.send_event('Starting node instance: nothing to do')]) +
-            post_start +
+            host_post_start +
+            (poststart or
+             [instance.send_event(
+                 'Poststarting node instance: nothing to do')]) +
             monitoring_start +
             establish +
             [forkjoin(
