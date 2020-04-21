@@ -231,47 +231,46 @@ def dep_workflow_in_state_pollster(_client,
 
     return False
 
-
-def dep_update_in_state_pollster(_client,
-                                 _dep_id,
-                                 _state,
-                                 _workflow_id=None,
-                                 _log_redirect=False,
-                                 _execution_id=None):
-
-    exec_get_fields = [
-        'state', 'old_inputs', 'new_inputs', 'execution_id', 'created_at',
-        'id', 'old_blueprint', 'new_blueprint_id']
-
-    try:
-        _exec = \
-            _client.deployment_updates.get( execution_id=_execution_id,
-                                            _include=exec_get_fields)
-
-        ctx.logger.debug(
-            'The deployment update get response form {0} is {1}'.format(
-                _dep_id, _exec))
-
-    except CloudifyClientError as ex:
-        raise NonRecoverableError(
-            'Deployment update get failed {0}.'.format(str(ex)))
-
-    if _log_redirect and _exec.get('id'):
-        ctx.logger.debug(
-            '_exec info for _log_redirect is {0}'.format(_exec))
-        dep_logs_redirect(_client, _exec.get('id'))
-
-    if _exec.get('state') == _state:
-        ctx.logger.debug(
-            'The status for _exec info id'
-            ' {0} is {1}'.format(_execution_id, _state))
-
-        return True
-    elif _exec.get('state') == 'failed':
-        raise NonRecoverableError(
-            'Deployment update {0} failed.'.format(str(_exec)))
-
-    return False
+#
+# def dep_update_in_state_pollster(_client,
+#                                  _dep_id,
+#                                  _state,
+#                                  _workflow_id=None,
+#                                  _log_redirect=False,
+#                                  _execution_id=None):
+#
+#     exec_get_fields = \
+#         ['state', 'execution_id', 'created_at', 'id']
+#
+#     try:
+#         _exec = \
+#             _client.deployment_updates.get( update_id=_execution_id,
+#                                             _include=exec_get_fields)
+#
+#         ctx.logger.debug(
+#             'The deployment update get response form {0} is {1}'.format(
+#                 _dep_id, _exec))
+#
+#     except CloudifyClientError as ex:
+#         raise NonRecoverableError(
+#             'Deployment update get failed {0}.'.format(str(ex)))
+#
+#     if _log_redirect and _exec.get('id'):
+#         ctx.logger.debug(
+#             '_exec info for _log_redirect is {0}'.format(_exec))
+#         dep_logs_redirect(_client, _exec.get('id'))
+#
+#     if _exec.get('state') == _state:
+#         ctx.logger.debug(
+#             'The status for _exec info id'
+#             ' {0} is {1}'.format(_execution_id, _state))
+#
+#         return True
+#     elif _exec.get('state') == 'failed':
+#         raise NonRecoverableError(
+#             'Deployment update {0} failed.'.format(str(_exec)))
+#
+#     return False
 
 
 def poll_workflow_after_execute(_timeout,
@@ -307,34 +306,34 @@ def poll_workflow_after_execute(_timeout,
     return True
 
 
-def poll_update_after_execute(  _timeout,
-                                _interval,
-                                _client,
-                                _dep_id,
-                                _state,
-                                _workflow_id,
-                                _execution_id,
-                                _log_redirect=False):
-
-    pollster_args = {
-        '_client': _client,
-        '_dep_id': _dep_id,
-        '_state': _state,
-        '_workflow_id': _workflow_id,
-        '_log_redirect': _log_redirect,
-        '_execution_id': _execution_id,
-    }
-
-    ctx.logger.debug('Polling: {0}'.format(pollster_args))
-
-    success = \
-        poll_with_timeout(
-            dep_update_in_state_pollster,
-            timeout=_timeout,
-            interval=_interval,
-            pollster_args=pollster_args)
-
-    if not success:
-        raise NonRecoverableError(
-            'Deployment update timeout: {0} seconds.'.format(_timeout))
-    return True
+# def poll_update_after_execute(  _timeout,
+#                                 _interval,
+#                                 _client,
+#                                 _dep_id,
+#                                 _state,
+#                                 _workflow_id,
+#                                 _execution_id,
+#                                 _log_redirect=False):
+#
+#     pollster_args = {
+#         '_client': _client,
+#         '_dep_id': _dep_id,
+#         '_state': _state,
+#         '_workflow_id': _workflow_id,
+#         '_log_redirect': _log_redirect,
+#         '_execution_id': _execution_id,
+#     }
+#
+#     ctx.logger.debug('Polling: {0}'.format(pollster_args))
+#
+#     success = \
+#         poll_with_timeout(
+#             dep_update_in_state_pollster,
+#             timeout=_timeout,
+#             interval=_interval,
+#             pollster_args=pollster_args)
+#
+#     if not success:
+#         raise NonRecoverableError(
+#             'Deployment update timeout: {0} seconds.'.format(_timeout))
+#     return True
