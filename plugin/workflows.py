@@ -46,6 +46,7 @@ def smart_update(ctx,
     to_preupdate = []
     to_update = []
     to_postupdate = []
+    to_reinstall = []
 
     for node_instance in ctx.node_instances:
         if  any(preupdate_op in node_instance.node.operations \
@@ -57,16 +58,19 @@ def smart_update(ctx,
                 for postupdate_op in POSTUPDATE_OPERATIONS):
             to_postupdate.append(node_instance.id)
 
-    for node_instance_to_reinstall_id in node_instances_to_reinstall:
+    for node_instance_to_reinstall_id in set(node_instances_to_reinstall):
         node_instance_to_reinstall = ctx.get_node_instance(
             node_instance_to_reinstall_id)
-        if  UPDATE_OPERATION in node_instance_to_reinstall.node.operations:
-            node_instances_to_reinstall.remove(node_instance_to_reinstall_id)
+        if  UPDATE_OPERATION not in node_instance_to_reinstall.node.operations:
+            to_reinstall.append(node_instance_to_reinstall_id)
+
+    node_instances_to_reinstall = to_reinstall
 
     # for debugging
     ctx.logger.debug('to_preupdate: {}'.format(to_preupdate))
     ctx.logger.debug('to_update: {}'.format(to_update))
     ctx.logger.debug('to_postupdate: {}'.format(to_postupdate))
+    ctx.logger.debug('to_reinstall: {}'.format(to_reinstall))
 
     instances_by_change = {
         'added_instances': (added_instance_ids, []),

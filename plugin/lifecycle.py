@@ -102,30 +102,6 @@ def execute_unlink_relationships(graph,
     processor.uninstall()
 
 
-# def execute_postupdate_establish_relationships(graph,
-#                                     node_instances,
-#                                     related_nodes=None,
-#                                     modified_relationship_ids=None):
-#     processor = SmartUpdateLifecycleProcessor(
-#         graph=graph,
-#         related_nodes=node_instances,
-#         modified_relationship_ids=modified_relationship_ids,
-#         name_prefix='establish')
-#     processor.postupdate()
-#
-#
-# def execute_preupdate_unlink_relationships(graph,
-#                                  node_instances,
-#                                  related_nodes=None,
-#                                  modified_relationship_ids=None):
-#     processor = SmartUpdateLifecycleProcessor(
-#         graph=graph,
-#         related_nodes=node_instances,
-#         modified_relationship_ids=modified_relationship_ids,
-#         name_prefix='unlink')
-#     processor.preupdate()
-
-
 class SmartUpdateLifecycleProcessor(object):
 
     def __init__(self,

@@ -50,6 +50,7 @@ from .polling import (
     any_dep_by_id,
     poll_with_timeout,
     poll_workflow_after_execute,
+    # poll_update_after_execute,
     dep_system_workflows_finished
 )
 from .utils import (
@@ -575,12 +576,12 @@ class DeploymentProxyBase(object):
                                 retry + 1))
 
             # Set the execution_id for the last execution process created
-            self.execution_id = response['id']
+            self.execution_id = response['execution_id']
             ctx.logger.debug('Executions start response: {0}'.format(response))
 
             # Poll for execution success.
-            if not self.verify_update_successful():
-                ctx.logger.error('Deployment update error.')
+            if not self.verify_execution_successful():
+                ctx.logger.error('Deployment error.')
 
             ctx.logger.debug('Polling execution succeeded')
 
@@ -654,17 +655,6 @@ class DeploymentProxyBase(object):
 
     def verify_execution_successful(self):
         return poll_workflow_after_execute(
-            self.timeout,
-            self.interval,
-            self.client,
-            self.deployment_id,
-            self.workflow_state,
-            self.workflow_id,
-            self.execution_id,
-            _log_redirect=self.deployment_logs.get('redirect', True))
-
-    def verify_update_successful(self):
-        return poll_update_after_execute(
             self.timeout,
             self.interval,
             self.client,
