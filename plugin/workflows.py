@@ -114,6 +114,7 @@ def smart_update(ctx,
         )
 
         _handle_plugin_after_update(ctx, modified_entity_ids['plugin'], 'add')
+        _refresh_runtime_properties()
 
     def _uninstall():
         if skip_uninstall:
@@ -136,6 +137,7 @@ def smart_update(ctx,
         _handle_plugin_after_update(
             ctx, modified_entity_ids['plugin'], 'remove'
         )
+        _refresh_runtime_properties()
 
     def _get_subgraph(node_instances_list):
         subgraph = set([])
@@ -153,6 +155,11 @@ def smart_update(ctx,
         intact_nodes = set(ctx.node_instances) - subgraph - to_uninstall
         return intact_nodes
 
+    def _refresh_runtime_properties():
+        # Update node instances runtime properties with changes
+        for instance in set(ctx.node_instances):
+            instance._node_instance.update()
+
     def _reinstall():
         subgraph = _get_subgraph(node_instances_to_reinstall)
         intact_nodes = _get_intact_nodes(subgraph)
@@ -160,6 +167,7 @@ def smart_update(ctx,
                                            node_instances=subgraph,
                                            related_nodes=intact_nodes,
                                            ignore_failure=ignore_failure)
+        _refresh_runtime_properties()
 
     def _preupdate():
         if not preupdate:
@@ -172,6 +180,7 @@ def smart_update(ctx,
             related_nodes=intact_nodes,
             ignore_failure=ignore_failure
         )
+        _refresh_runtime_properties()
 
     def _update():
         if not update:
@@ -183,6 +192,7 @@ def smart_update(ctx,
             node_instances=subgraph,
             related_nodes=intact_nodes
         )
+        _refresh_runtime_properties()
 
     def _postupdate():
         if not postupdate:
@@ -194,6 +204,7 @@ def smart_update(ctx,
             node_instances=subgraph,
             related_nodes=intact_nodes
         )
+        _refresh_runtime_properties()
 
     _uninstall()
     _preupdate()

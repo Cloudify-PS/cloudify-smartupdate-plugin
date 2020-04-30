@@ -1,0 +1,6 @@
+cfy blueprint upload -b network network.yaml
+cfy blueprint upload -b instance instance.yaml
+
+cfy install -b main -d main main.yaml
+
+cfy uninstall main -p ignore_failure=true
