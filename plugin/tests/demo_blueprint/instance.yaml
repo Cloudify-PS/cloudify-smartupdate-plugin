@@ -42,9 +42,9 @@ node_templates:
         stop: {}
         delete: {}
       cloudify.interfaces.update:
-        update: openstack.openstack_plugin.resources.network.port.delete
+        update: openstack.openstack_plugin.resources.network.port.create
       cloudify.interfaces.postupdate:
-        create: openstack.openstack_plugin.resources.network.port.create
+        create: {}
         configure: {}
         start: {}
 
