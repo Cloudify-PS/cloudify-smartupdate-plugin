@@ -41,6 +41,12 @@ workflows:
         type: boolean
       node_instances_to_reinstall:
         default: []
+      central_plugins_to_install:
+        default: ~
+      central_plugins_to_uninstall:
+        default: ~
+      update_plugins:
+        default: true
       preupdate:
         default: true
       update:

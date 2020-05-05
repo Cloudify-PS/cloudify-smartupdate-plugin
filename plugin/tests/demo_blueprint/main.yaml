@@ -4,19 +4,6 @@ tosca_definitions_version: cloudify_dsl_1_3
 imports:
   - http://cloudify.co/spec/cloudify/4.6/types.yaml
   - plugin:cloudify-smartupdate-plugin?version=1.0
-  - plugin:cloudify-openstack-plugin?version=3.2.9
-
-
-dsl_definitions:
-
-  client_config: &client_config
-    username: { get_secret: username }
-    password: { get_secret: password }
-    project_name: { get_secret: project_name }
-    auth_url: { get_secret: auth_url }
-    region_name: { get_secret: region_name }
-    user_domain_name: { get_secret: user_domain_name }
-    project_domain_name: { get_secret: project_domain_name }
 
 
 inputs:
@@ -109,6 +96,27 @@ node_templates:
             instance_name: instance_name
             port_id: port_id
             port_name: port_name
+    interfaces:
+      cloudify.interfaces.update:
+        update:
+          inputs:
+            resource_config:
+              blueprint: { get_property: [ SELF, resource_config, blueprint ] }
+              deployment: { get_property: [ SELF, resource_config, deployment ] }
+              reexecute: { get_property: [ SELF, resource_config, reexecute ] }
+              executions_start_args:
+                blueprint_id: { get_property: [ SELF, resource_config, blueprint, id ] }
+                skip_install: False
+                skip_uninstall: False
+                skip_reinstall: False
+                force: True
+                ignore_failure: False
+                install_first: False
+                inputs:
+                  instance_name: { get_input: instance_name }
+                  port_id: { get_attribute: [smart_network, deployment, outputs, port_id] }
+                reinstall_list: []
+                workflow_id: smart_execute_update
     relationships:
       - type: cloudify.relationships.smart_connected_to
         target: smart_network
