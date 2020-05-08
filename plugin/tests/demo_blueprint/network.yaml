@@ -93,7 +93,7 @@ node_templates:
         target: subnet
 
 
-outputs:
+capabilities:
 
   network_id:
     value: { get_attribute: [network, id] }

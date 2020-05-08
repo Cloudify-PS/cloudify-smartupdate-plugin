@@ -30,7 +30,7 @@ inputs:
 
 node_templates:
 
-  port:
+  new_port:
     type: cloudify.nodes.openstack.Port
     properties:
       client_config: *client_config
@@ -64,21 +64,15 @@ node_templates:
         start: openstack.openstack_plugin.resources.compute.server.reboot
     relationships:
       - type: cloudify.relationships.openstack.server_connected_to_port
-        target: port
+        target: new_port
         source_interfaces:
           cloudify.interfaces.relationship_preupdate:
-            unlink:
-              implementation: openstack.openstack_plugin.resources.network.port.detach
-              inputs:
-                port_id: { get_attribute: [ TARGET, id ] }
+            unlink: {}
           cloudify.interfaces.relationship_update:
             update: {}
           cloudify.interfaces.relationship_postupdate:
             preconfigure: {}
-            postconfigure:
-              implementation: openstack.openstack_plugin.resources.network.port.attach
-              inputs:
-                port_id: { get_attribute: [ TARGET, id ] }
+            postconfigure: {}
             establish: {}
         target_interfaces:
           cloudify.interfaces.relationship_preupdate:
@@ -100,7 +94,7 @@ capabilities:
     value: { get_attribute: [instance, name] }
 
   port_id:
-    value: { get_attribute: [port, id] }
+    value: { get_attribute: [new_port, id] }
 
   port_name:
-    value: { get_attribute: [port, name] }
+    value: { get_attribute: [new_port, name] }

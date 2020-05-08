@@ -1,8 +1,12 @@
 cfy blueprint upload -b network network.yaml
 cfy blueprint upload -b instance instance.yaml
-
+cfy blueprint upload -b instance_update instance_update.yaml
 cfy install -b main -d main main.yaml
+cfy blueprint upload -b main_update main_update.yaml
 
 cfy uninstall main -p ignore_failure=true
 cfy blueprint delete network
 cfy blueprint delete instance
+cfy blueprint delete instance_update
+cfy blueprint delete main
+cfy blueprint delete main_update

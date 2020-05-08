@@ -85,7 +85,7 @@ node_templates:
       resource_config:
         blueprint:
           external_resource: True
-          id: instance
+          id: instance_update
         deployment:
           id: instance
           inputs:
