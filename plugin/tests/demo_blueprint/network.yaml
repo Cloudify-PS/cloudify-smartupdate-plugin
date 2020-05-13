@@ -85,9 +85,9 @@ node_templates:
       resource_config:
         name: { get_input: port_name }
         network_id: { get_attribute: [network, id] }
-        fixed_ips:
-          - subnet_id: { get_attribute: [subnet, id] }
-            ip_address: { get_input: port_ip }
+        # fixed_ips:
+        #   - subnet_id: { get_attribute: [subnet, id] }
+        #     ip_address: { get_input: port_ip }
     relationships:
       - type: cloudify.relationships.contained_in
         target: subnet
