@@ -1,0 +1,85 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+
+imports:
+  - http://cloudify.co/spec/cloudify/4.6/types.yaml
+  - plugin:cloudify-smartupdate-plugin?version=1.0
+
+
+inputs:
+
+  enable_dhcp:
+    type: boolean
+    default: True
+
+  dns_nameservers:
+    default:
+      - 8.8.8.8
+
+  allocation_pools:
+    default:
+      - start: 172.16.1.2
+        end: 172.16.1.254
+
+  gateway_ip:
+    type: string
+    default: 172.16.1.1
+
+  cidr:
+    type: string
+    default: 172.16.1.0/24
+
+  image_id:
+    type: string
+
+  flavor_id:
+    type: string
+    default: m1.small
+
+  availability_zone:
+    type: string
+    default: nova
+
+
+node_templates:
+
+  smart_network:
+    type: cloudify.nodes.SmartDeploymentProxy
+    properties:
+      resource_config:
+        blueprint:
+          external_resource: True
+          id: network
+        deployment:
+          id: network
+          inputs:
+            enable_dhcp: { get_input: enable_dhcp }
+            dns_nameservers: { get_input: dns_nameservers }
+            allocation_pools: { get_input: allocation_pools }
+            gateway_ip: { get_input: gateway_ip }
+            cidr: { get_input: cidr }
+          outputs:
+            network_id: network_id
+            subnet_id: subnet_id
+            port_id: port_id
+
+  smart_instance:
+    type: cloudify.nodes.SmartDeploymentProxy
+    properties:
+      resource_config:
+        blueprint:
+          external_resource: True
+          id: instance
+        deployment:
+          id: instance
+          inputs:
+            port_id: { get_capability: [network, port_id] }
+            image_id: { get_input: image_id }
+            flavor_id: { get_input: flavor_id }
+            availability_zone: { get_input: availability_zone }
+          outputs:
+            instance_id: instance_id
+            port_id: port_id
+    relationships:
+      - type: cloudify.relationships.smart_connected_to
+        target: smart_network
