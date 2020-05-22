@@ -15,6 +15,7 @@
 import sys
 import time
 import os
+import copy
 from six.moves.urllib.parse import urlparse
 
 from cloudify import ctx
@@ -619,12 +620,13 @@ class DeploymentProxyBase(object):
         return True
 
     def post_execute_deployment_proxy(self):
-        runtime_prop = ctx.instance.runtime_properties['deployment']
+        runtime_prop = copy.deepcopy(
+            ctx.instance.runtime_properties['deployment'])
         ctx.logger.debug(
             'Runtime deployment properties: {0}'.format(runtime_prop))
 
         if 'outputs' not in runtime_prop.keys():
-            update_attributes('deployment', 'outputs', dict())
+            runtime_prop['outputs'] = dict()
             ctx.logger.debug('No deployment proxy outputs exist.')
 
         try:
@@ -647,10 +649,11 @@ class DeploymentProxyBase(object):
                 output_mapping = {key: key for key, _ in dep_outputs.items()}
             else:
                 output_mapping = {}
+
             for key, val in output_mapping.items():
-                ctx.instance.runtime_properties[
-                    'deployment']['outputs'][val] = \
+                    runtime_prop['outputs'][val] = \
                     dep_outputs.get(key, '')
+        ctx.instance.runtime_properties['deployment'] = runtime_prop
         return True
 
     def verify_execution_successful(self):
