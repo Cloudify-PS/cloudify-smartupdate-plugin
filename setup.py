@@ -23,7 +23,7 @@ setup(
     # Do not use underscores in the plugin name.
     name='cloudify-smartupdate-plugin',
 
-    version='1.0',
+    version='1.1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     description='''
@@ -34,7 +34,8 @@ setup(
     # This must correspond to the actual packages in the plugin.
     packages=[
         'plugin',
-        'deployment_proxy'
+        'deployment_proxy',
+        'component'
     ],
 
     license='LICENSE',
