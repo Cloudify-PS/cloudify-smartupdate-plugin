@@ -392,7 +392,7 @@ node_types:
                 executions_start_args:
                   allow_custom_parameters: true
         delete:
-          implementation: cloudify_smart_update.component.operations.delete_deployment
+          implementation: cloudify_smart_update.component.operations.delete
       cloudify.interfaces.preupdate:
         prestop:
           implementation: cloudify_smart_update.component.operations.execute_start

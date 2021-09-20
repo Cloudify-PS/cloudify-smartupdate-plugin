@@ -19,3 +19,4 @@ PAGINATION_SIZE = 1000
 
 EXTERNAL_RESOURCE = 'external_resource'
 CAPABILITIES = 'capabilities'
+TASK_RETRIES = 'task_retries'

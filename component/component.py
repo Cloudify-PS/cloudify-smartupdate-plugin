@@ -27,7 +27,8 @@ from cloudify.deployment_dependencies import (dependency_creator_generator,
 from .constants import (
     EXECUTIONS_TIMEOUT,
     POLLING_INTERVAL,
-    EXTERNAL_RESOURCE)
+    EXTERNAL_RESOURCE,
+    TASK_RETRIES)
 from .polling import (
     poll_with_timeout,
     is_all_executions_finished,
@@ -309,13 +310,10 @@ class Component(object):
             self.deployment_id = self._generate_suffix_deployment_id(
                 self.client, self.deployment_id)
         elif deployment_id_exists(self.client, self.deployment_id):
-            # TODO (marrowne) warning instead of NonRecoverableError?
             ctx.logger.warn(
-                'Deployment ID {0} exists, '
-                'but {1} is {2}. Will use.'.format(
-                    self.blueprint_id,
-                    EXTERNAL_RESOURCE,
-                    self.blueprint.get(EXTERNAL_RESOURCE)))
+                'Deployment ID {0} exists. '
+                'Will use.'.format(
+                    self.blueprint_id))
             return False
         self._inter_deployment_dependency['target_deployment'] = \
             self.deployment_id
@@ -561,8 +559,8 @@ class Component(object):
                      **execution_args)
 
             deployment_updates = None
-            # TODO (marrowne) consider default retries?
-            for retry in range(0, 5):
+            task_retries = Component.get_task_retries_from_config()
+            for retry in range(0, task_retries):
                 try:
                     deployment_updates = self._http_client_wrapper(
                         'deployment_updates',
@@ -570,12 +568,12 @@ class Component(object):
                         update_request_args)
                     break
                 except NonRecoverableError:
-                    if (retry + 1 >= 5):
+                    if retry + 1 >= task_retries:
                         raise
                     else:
                         ctx.logger.debug(
-                            'Deployment Update failed. Retry {}/5'.format(
-                                retry + 1))
+                            'Deployment Update failed. Retry {}/{}'.format(
+                                retry + 1, task_retries))
 
             execution_id = deployment_updates['id']
             if not self.verify_execution_successful(execution_id):
@@ -584,7 +582,6 @@ class Component(object):
                                                      self.deployment_id))
             ctx.logger.info('Execution succeeded for update of "{0}" deployment'.format(
                 self.deployment_id))
-            # TODO (marrowne) does it work with that?
             populate_runtime_with_wf_results(self.client, self.deployment_id)
 
         execution_args = self.config.get('executions_start_args', {})
@@ -614,6 +611,12 @@ class Component(object):
             self.deployment_id))
         populate_runtime_with_wf_results(self.client, self.deployment_id)
         return True
+
+    @staticmethod
+    def get_task_retries_from_config():
+        entry = next(x for x in ctx.get_config() if x.get('name') == TASK_RETRIES)
+        value = entry.get('value')
+        return int(value)
 
     def verify_execution_successful(self, execution_id):
         return verify_execution_state(self.client,
