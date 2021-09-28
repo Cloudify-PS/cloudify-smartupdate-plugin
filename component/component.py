@@ -575,39 +575,15 @@ class Component(object):
                             'Deployment Update failed. Retry {}/{}'.format(
                                 retry + 1, task_retries))
 
-            execution_id = deployment_updates['id']
-            if not self.verify_execution_successful(execution_id):
-                ctx.logger.error('Execution {0} failed for update of "{1}" '
-                                 'deployment'.format(execution_id,
-                                                     self.deployment_id))
-            ctx.logger.info('Execution succeeded for update of "{0}" deployment'.format(
-                self.deployment_id))
-            populate_runtime_with_wf_results(self.client, self.deployment_id)
+        ctx.logger.debug('Execution start response: "{0}".'.format(deployment_updates))
 
-        execution_args = self.config.get('executions_start_args', {})
-
-        request_args = dict(
-            deployment_id=self.deployment_id,
-            workflow_id=self.workflow_id,
-            **execution_args
-        )
-        if self.workflow_id == ctx.workflow_id:
-            request_args.update(dict(parameters=ctx.workflow_parameters))
-
-        ctx.logger.info('Starting execution for "{0}" deployment'.format(
-            self.deployment_id))
-        execution = self._http_client_wrapper(
-            'executions', 'start', request_args)
-
-        ctx.logger.debug('Execution start response: "{0}".'.format(execution))
-
-        execution_id = execution['id']
+        execution_id = deployment_updates['execution_id']
         if not self.verify_execution_successful(execution_id):
-            ctx.logger.error('Execution {0} failed for "{1}" '
+            ctx.logger.error('Execution {0} failed for update of "{1}" '
                              'deployment'.format(execution_id,
                                                  self.deployment_id))
 
-        ctx.logger.info('Execution succeeded for "{0}" deployment'.format(
+        ctx.logger.info('Execution succeeded for update of "{0}" deployment'.format(
             self.deployment_id))
         populate_runtime_with_wf_results(self.client, self.deployment_id)
         return True

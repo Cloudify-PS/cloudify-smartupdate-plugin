@@ -53,33 +53,33 @@ node_templates:
       #   start: {}
       cloudify.interfaces.lifecycle:
         delete: {}
-    relationships:
-      - type: cloudify.relationships.openstack.port_connected_to_server
-        target: instance
-        source_interfaces:
-          cloudify.interfaces.relationship_preupdate:
-            unlink:
-              implementation: openstack.openstack_plugin.resources.network.port.detach_from_server
-              inputs:
-                device_id: { get_attribute: [ TARGET, id ] }
-          cloudify.interfaces.relationship_update:
-            update: {}
-          cloudify.interfaces.relationship_postupdate:
-            preconfigure: {}
-            postconfigure: {}
-              # implementation: openstack.openstack_plugin.resources.network.port.attach
-              # inputs:
-              #   port_id: { get_attribute: [ TARGET, id ] }
-            establish: {}
-        target_interfaces:
-          cloudify.interfaces.relationship_preupdate:
-            unlink: {}
-          cloudify.interfaces.relationship_update:
-            update: {}
-          cloudify.interfaces.relationship_postupdate:
-            preconfigure: {}
-            postconfigure: {}
-            establish: {}
+    # relationships:
+    #   - type: cloudify.relationships.openstack.port_connected_to_server
+    #     target: instance
+    #     source_interfaces:
+    #       cloudify.interfaces.relationship_preupdate:
+    #         unlink:
+    #           implementation: openstack.openstack_plugin.resources.network.port.detach_from_server
+    #           inputs:
+    #             device_id: { get_attribute: [ TARGET, id ] }
+    #       cloudify.interfaces.relationship_update:
+    #         update: {}
+    #       cloudify.interfaces.relationship_postupdate:
+    #         preconfigure: {}
+    #         postconfigure: {}
+    #           # implementation: openstack.openstack_plugin.resources.network.port.attach
+    #           # inputs:
+    #           #   port_id: { get_attribute: [ TARGET, id ] }
+    #         establish: {}
+    #     target_interfaces:
+    #       cloudify.interfaces.relationship_preupdate:
+    #         unlink: {}
+    #       cloudify.interfaces.relationship_update:
+    #         update: {}
+    #       cloudify.interfaces.relationship_postupdate:
+    #         preconfigure: {}
+    #         postconfigure: {}
+    #         establish: {}
 
   instance:
     type: cloudify.nodes.openstack.Server
@@ -102,33 +102,33 @@ node_templates:
         create: {}
         configure: {}
         start: openstack.openstack_plugin.resources.compute.server.reboot
-    # relationships:
-    #   - type: cloudify.relationships.openstack.server_connected_to_port
-    #     target: new_port
-    #     source_interfaces:
-    #       cloudify.interfaces.relationship_preupdate:
-    #         unlink:
-    #           implementation: openstack.openstack_plugin.resources.network.port.detach
-    #           inputs:
-    #             port_id: { get_attribute: [ TARGET, id ] }
-    #       cloudify.interfaces.relationship_update:
-    #         update: {}
-    #       cloudify.interfaces.relationship_postupdate:
-    #         preconfigure: {}
-    #         postconfigure:
-    #           implementation: openstack.openstack_plugin.resources.network.port.attach
-    #           inputs:
-    #             port_id: { get_attribute: [ TARGET, id ] }
-    #         establish: {}
-    #     target_interfaces:
-    #       cloudify.interfaces.relationship_preupdate:
-    #         unlink: {}
-    #       cloudify.interfaces.relationship_update:
-    #         update: {}
-    #       cloudify.interfaces.relationship_postupdate:
-    #         preconfigure: {}
-    #         postconfigure: {}
-    #         establish: {}
+    relationships:
+      - type: cloudify.relationships.openstack.server_connected_to_port
+        target: new_port
+        source_interfaces:
+          cloudify.interfaces.relationship_preupdate:
+            unlink:
+              implementation: openstack.openstack_plugin.resources.network.port.detach
+              inputs:
+                port_id: { get_attribute: [ TARGET, id ] }
+          cloudify.interfaces.relationship_update:
+            update: {}
+          cloudify.interfaces.relationship_postupdate:
+            preconfigure: {}
+            postconfigure:
+              implementation: openstack.openstack_plugin.resources.network.port.attach
+              inputs:
+                port_id: { get_attribute: [ TARGET, id ] }
+            establish: {}
+        target_interfaces:
+          cloudify.interfaces.relationship_preupdate:
+            unlink: {}
+          cloudify.interfaces.relationship_update:
+            update: {}
+          cloudify.interfaces.relationship_postupdate:
+            preconfigure: {}
+            postconfigure: {}
+            establish: {}
 
 
 capabilities:

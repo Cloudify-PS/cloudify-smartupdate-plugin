@@ -3,6 +3,12 @@ cfy blueprint upload -b instance instance.yaml
 cfy blueprint upload -b instance_update instance_update.yaml
 cfy install -b main -d main main.yaml
 cfy blueprint upload -b main_update main_update.yaml
+curl -k -X PUT \
+    -H "Content-Type: application/json" \
+    -H "Tenant: default_tenant" \
+    -u admin:<manager-password> \
+    -d '{"skip_install": false, "skip_uninstall": false, "skip_reinstall": false, "force": false, "ignore_failure": false, "install_first": false, "blueprint_id": "main_update", "reinstall_list": [], "workflow_id":"smart_execute_update"}' \
+    "http://localhost/api/v3.1/deployment-updates/main/update/initiate"
 
 cfy uninstall main -p ignore_failure=true
 cfy blueprint delete network

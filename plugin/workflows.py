@@ -18,6 +18,7 @@
 
 from cloudify.decorators import workflow
 from cloudify.manager import get_rest_client
+from collections import OrderedDict
 
 from . import lifecycle
 from .constants import UPDATE_OPERATION, PREUPDATE_OPERATIONS, POSTUPDATE_OPERATIONS
@@ -88,7 +89,7 @@ def smart_update(ctx,
     for instance in ctx.node_instances:
         instance_holders = [instance_holder
                             for _, (changed_ids, instance_holder)
-                            in instances_by_change.iteritems()
+                            in instances_by_change.items()
                             if instance.id in changed_ids]
         for instance_holder in instance_holders:
             instance_holder.append(instance)
@@ -149,9 +150,10 @@ def smart_update(ctx,
                 node_instance_id).get_contained_subgraph()
         subgraph -= to_uninstall
         for n in subgraph:
-            for r in n._relationship_instances:
-                if r in removed_instance_ids:
-                    n._relationship_instances.pop(r)
+            rel_list = n._relationship_instances.items()
+            n._relationship_instances = OrderedDict(
+                [(k, v) for k, v in rel_list
+                 if k not in removed_instance_ids])
         return subgraph
 
     def _get_intact_nodes(subgraph):
@@ -246,7 +248,7 @@ def _handle_plugin_after_update(ctx, plugins_list, action):
         if plugin not in node_list:
             node_list.append(plugin)
 
-    for node_id, plugins in node_to_plugins_map.items():
+    for node_id, plugins in list(node_to_plugins_map.items()):
         if not plugins:
             continue
 
