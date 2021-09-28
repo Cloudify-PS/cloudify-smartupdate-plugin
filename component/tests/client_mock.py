@@ -85,7 +85,9 @@ class MockEventsClient(BaseMockClient):
 
 
 class MockSecretsClient(BaseMockClient):
-    pass
+
+    def create(self, *args, **_):
+        return MagicMock()
 
 
 class MockDeploymentCapabilitiesClient(BaseMockClient):
