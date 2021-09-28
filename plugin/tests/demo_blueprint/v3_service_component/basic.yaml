@@ -1,0 +1,73 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://cloudify.co/spec/cloudify/6.2.0/types.yaml
+  - plugin:cloudify-smartupdate-plugin?version=1.1
+
+inputs:
+  rp:
+    type: string
+    default: ''
+
+node_templates:
+  node1:
+    type: cloudify.nodes.Root
+    interfaces:
+       cloudify.interfaces.lifecycle:
+         create: 
+           implementation: scripts/set.sh
+           executor: central_deployment_agent
+           inputs:
+             NAME: "prop1"
+             VALUE: "value1"
+       cloudify.interfaces.preupdate:
+         stop: {}
+         delete: {}
+       cloudify.interfaces.update:
+         update: 
+           implementation: scripts/log.sh
+           executor: central_deployment_agent
+           inputs:
+             MESSAGE: "update node1"
+       cloudify.interfaces.postupdate:
+         create: {}
+         configure:
+         start: {}
+
+  node2:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.preupdate:
+        stop: {}
+        delete: {}
+      cloudify.interfaces.update:
+        update: {}
+      cloudify.interfaces.postupdate:
+        create: {}
+        configure: {}
+        start: {}
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: node1
+        source_interfaces:
+          cloudify.interfaces.relationship_preupdate:
+            unlink: {}
+          cloudify.interfaces.relationship_update:
+            update: {}
+          cloudify.interfaces.relationship_postupdate:
+            preconfigure: {}
+            postconfigure: {}
+            establish: {}
+        target_interfaces:
+          cloudify.interfaces.relationship_preupdate:
+            unlink: {}
+          cloudify.interfaces.relationship_update:
+            update: {}
+          cloudify.interfaces.relationship_postupdate:
+            preconfigure: {}
+            postconfigure: {}
+            establish: {}
+
+capabilities:
+  rp:
+    value: { get_attribute: [node1, prop1] }
