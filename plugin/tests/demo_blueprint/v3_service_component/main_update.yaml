@@ -85,5 +85,5 @@ node_templates:
             instance_name: { get_input: instance_name }
             port_id: { get_capability: [network, port_id] }
     relationships:
-      - type: cloudify.relationships.smart_update.connected_to:
+      - type: cloudify.relationships.smart_update.connected_to
         target: smart_network
