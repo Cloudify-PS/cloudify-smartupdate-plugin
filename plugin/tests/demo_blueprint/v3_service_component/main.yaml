@@ -86,5 +86,5 @@ node_templates:
             port_id: { get_capability: [network, port_id] }
 
     relationships:
-      - type: cloudify.relationships.smart_connected_to
+      - type: cloudify.relationships.smart_update.connected_to:
         target: smart_network

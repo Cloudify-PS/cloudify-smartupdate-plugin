@@ -278,8 +278,50 @@ node_types:
 
 
 relationships:
-  cloudify.relationships.smart_connected_to:
+  cloudify.relationships.smart_update.connected_to:
     derived_from: cloudify.relationships.connected_to
+    source_interfaces:
+      cloudify.interfaces.relationship_preupdate:
+        unlink: cloudify_smart_update.plugin.tasks.get_operation_name
+      cloudify.interfaces.relationship_update:
+        update: cloudify_smart_update.plugin.tasks.get_operation_name
+      cloudify.interfaces.relationship_postupdate:
+        preconfigure: cloudify_smart_update.plugin.tasks.get_operation_name
+        postconfigure: cloudify_smart_update.plugin.tasks.get_operation_name
+        establish: cloudify_smart_update.plugin.tasks.get_operation_name
+    target_interfaces:
+      cloudify.interfaces.relationship_preupdate:
+        unlink: cloudify_smart_update.plugin.tasks.get_operation_name
+      cloudify.interfaces.relationship_update:
+        update: cloudify_smart_update.plugin.tasks.get_operation_name
+      cloudify.interfaces.relationship_postupdate:
+        preconfigure: cloudify_smart_update.plugin.tasks.get_operation_name
+        postconfigure: cloudify_smart_update.plugin.tasks.get_operation_name
+        establish: cloudify_smart_update.plugin.tasks.get_operation_name
+
+  cloudify.relationships.smart_update.depends_on:
+    derived_from: cloudify.relationships.depends_on
+    source_interfaces:
+      cloudify.interfaces.relationship_preupdate:
+        unlink: cloudify_smart_update.plugin.tasks.get_operation_name
+      cloudify.interfaces.relationship_update:
+        update: cloudify_smart_update.plugin.tasks.get_operation_name
+      cloudify.interfaces.relationship_postupdate:
+        preconfigure: cloudify_smart_update.plugin.tasks.get_operation_name
+        postconfigure: cloudify_smart_update.plugin.tasks.get_operation_name
+        establish: cloudify_smart_update.plugin.tasks.get_operation_name
+    target_interfaces:
+      cloudify.interfaces.relationship_preupdate:
+        unlink: cloudify_smart_update.plugin.tasks.get_operation_name
+      cloudify.interfaces.relationship_update:
+        update: cloudify_smart_update.plugin.tasks.get_operation_name
+      cloudify.interfaces.relationship_postupdate:
+        preconfigure: cloudify_smart_update.plugin.tasks.get_operation_name
+        postconfigure: cloudify_smart_update.plugin.tasks.get_operation_name
+        establish: cloudify_smart_update.plugin.tasks.get_operation_name
+
+  cloudify.relationships.smart_update.contained_in:
+    derived_from: cloudify.relationships.contained_in
     source_interfaces:
       cloudify.interfaces.relationship_preupdate:
         unlink: cloudify_smart_update.plugin.tasks.get_operation_name
