@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DEPLOYMENTS_TIMEOUT = 120
-EXECUTIONS_TIMEOUT = 1800
-POLLING_INTERVAL = 1
-PAGINATION_SIZE = 1000
-
-EXTERNAL_RESOURCE = 'external_resource'
-CAPABILITIES = 'capabilities'
+from cloudify_types.component.constants import (DEPLOYMENTS_TIMEOUT,
+                                                EXECUTIONS_TIMEOUT,
+                                                POLLING_INTERVAL,
+                                                PAGINATION_SIZE,
+                                                EXTERNAL_RESOURCE,
+                                                CAPABILITIES)
 TASK_RETRIES = 'task_retries'

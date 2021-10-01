@@ -34,7 +34,6 @@ setup(
     # This must correspond to the actual packages in the plugin.
     packages=[
         'plugin',
-        'deployment_proxy',
         'component'
     ],
 
@@ -42,10 +41,10 @@ setup(
     zip_safe=False,
     install_requires=[
         # Necessary dependency for developing plugins, do not remove!
-        "cloudify-common>=4.6"
+        "cloudify-common>=6.0.0"
     ],
     test_requires=[
-        "cloudify-common>=4.6"
+        "cloudify-common>=6.0.0"
         "nose"
     ]
 )

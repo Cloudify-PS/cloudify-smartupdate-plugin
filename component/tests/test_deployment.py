@@ -78,27 +78,6 @@ class TestDeployment(TestDeploymentBase):
                         timeout=MOCK_TIMEOUT)
                     self.assertTrue(output)
 
-    def test_delete_deployment_success(self):
-        self._ctx.instance.runtime_properties['deployment']['id'] = 'dep_name'
-
-        with mock.patch('cloudify.manager.get_rest_client') as mock_client:
-            mock_client.return_value = self.cfy_mock_client
-            self.cfy_mock_client.secrets.delete = mock.Mock()
-
-            poll_with_timeout_test = \
-                'cloudify_types.component.polling.poll_with_timeout'
-            with mock.patch(poll_with_timeout_test) as poll:
-                poll.return_value = True
-                output = delete(
-                    operation='delete_deployment',
-                    deployment_id='dep_name',
-                    timeout=MOCK_TIMEOUT)
-                self.assertTrue(output)
-
-            assert not self.cfy_mock_client.secrets.delete.called
-            assert not self.cfy_mock_client.plugins.delete.called
-            self.assertEqual({}, self._ctx.instance.runtime_properties)
-
     def test_delete_deployment_any_dep_by_id(self):
         self._ctx.instance.runtime_properties['deployment']['id'] = 'dep_name'
         with mock.patch('cloudify.manager.get_rest_client') as mock_client:
@@ -189,10 +168,9 @@ class TestDeployment(TestDeploymentBase):
             self.cfy_mock_client.deployments.set_existing_objects([
                 {'id': 'dep'}])
             mock_client.return_value = self.cfy_mock_client
-            self.assertRaises(NonRecoverableError,
-                              create,
-                              operation='create_deployment',
-                              timeout=MOCK_TIMEOUT)
+            output = create(operation='create_deployment',
+                            timeout=MOCK_TIMEOUT)
+            self.assertFalse(output)
 
 
 class TestComponentPlugins(TestDeploymentBase):
