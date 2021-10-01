@@ -53,7 +53,7 @@ inputs:
 node_templates:
 
   smart_network:
-    type: cloudify.nodes.SmartServiceComponent
+    type: cloudify.nodes.smart_update.ServiceComponent
     properties:
       resource_config:
         blueprint:
@@ -73,7 +73,7 @@ node_templates:
             port_ip: { get_input: port_ip }
 
   smart_instance:
-    type: cloudify.nodes.SmartServiceComponent
+    type: cloudify.nodes.smart_update.ServiceComponent
     properties:
       resource_config:
         blueprint:

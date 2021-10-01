@@ -94,7 +94,7 @@ workflows:
 
 data_types:
 
-  cloudify.datatypes.SmartBlueprint:
+  cloudify.datatypes.smart_update.Blueprint:
     properties:
       external_resource:
         description: >
@@ -116,7 +116,7 @@ data_types:
         default: ""
         required: true
 
-  cloudify.datatypes.SmartComponentDeployment:
+  cloudify.datatypes.smart_update.ComponentDeployment:
     properties:
       external_resource:
         description: >
@@ -144,13 +144,13 @@ data_types:
         type: boolean
         required: false
 
-  cloudify.datatypes.SmartComponent:
+  cloudify.datatypes.smart_update.Component:
     properties:
       blueprint:
-        type: cloudify.datatypes.SmartBlueprint
+        type: cloudify.datatypes.smart_update.Blueprint
         required: true
       deployment:
-        type: cloudify.datatypes.SmartComponentDeployment
+        type: cloudify.datatypes.smart_update.ComponentDeployment
         required: true
       executions_start_args:
         description: >
@@ -159,7 +159,7 @@ data_types:
         default: { }
 
 node_types:
-  cloudify.nodes.SmartRoot:
+  cloudify.nodes.smart_update.Root:
     derived_from: cloudify.nodes.Root
     interfaces:
       cloudify.interfaces.preupdate:
@@ -174,11 +174,11 @@ node_types:
         start: cloudify_smart_update.plugin.tasks.get_operation_name
         poststart: cloudify_smart_update.plugin.tasks.get_operation_name
 
-  cloudify.nodes.SmartComponent:
+  cloudify.nodes.smart_update.Component:
     derived_from: cloudify.nodes.Root
     properties:
       resource_config:
-        type: cloudify.datatypes.SmartComponent
+        type: cloudify.datatypes.smart_update.Component
         default: {}
       client:
         description: >
@@ -273,8 +273,8 @@ node_types:
               default: smart_execute_postupdate
 
 
-  cloudify.nodes.SmartServiceComponent:
-    derived_from: cloudify.nodes.SmartComponent
+  cloudify.nodes.smart_update.ServiceComponent:
+    derived_from: cloudify.nodes.smart_update.Component
 
 
 relationships:
