@@ -244,6 +244,7 @@ node_types:
         stop: { }
         delete: { }
       cloudify.interfaces.update:
+        prepare: { }
         update:
           implementation: cloudify_smart_update.component.operations.execute_deployment_update
           inputs:
@@ -262,6 +263,7 @@ node_types:
                   inputs: { get_property: [ SELF, resource_config, deployment, inputs ] }
                   reinstall_list: [ ]
                   workflow_id: smart_execute_update
+        cleanup: { }
       cloudify.interfaces.postupdate:
         create: { }
         configure: { }
