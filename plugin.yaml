@@ -162,13 +162,13 @@ node_types:
   cloudify.nodes.smart_update.Root:
     derived_from: cloudify.nodes.Root
     interfaces:
-      cloudify.interfaces.preupdate:
+      cloudify.interfaces.smart_update.preupdate:
         prestop: cloudify_smart_update.plugin.tasks.get_operation_name
         stop: cloudify_smart_update.plugin.tasks.get_operation_name
         delete: cloudify_smart_update.plugin.tasks.get_operation_name
-      cloudify.interfaces.update:
+      cloudify.interfaces.smart_update.update:
         update: cloudify_smart_update.plugin.tasks.get_operation_name
-      cloudify.interfaces.postupdate:
+      cloudify.interfaces.smart_update.postupdate:
         create: cloudify_smart_update.plugin.tasks.get_operation_name
         configure: cloudify_smart_update.plugin.tasks.get_operation_name
         start: cloudify_smart_update.plugin.tasks.get_operation_name
@@ -235,7 +235,7 @@ node_types:
                   allow_custom_parameters: true
         delete:
           implementation: cloudify_smart_update.component.operations.delete
-      cloudify.interfaces.preupdate:
+      cloudify.interfaces.smart_update.preupdate:
         prestop:
           implementation: cloudify_smart_update.component.operations.execute_start
           inputs:
@@ -243,7 +243,7 @@ node_types:
               default: smart_execute_preupdate
         stop: { }
         delete: { }
-      cloudify.interfaces.update:
+      cloudify.interfaces.smart_update.update:
         prepare: { }
         update:
           implementation: cloudify_smart_update.component.operations.execute_deployment_update
@@ -264,7 +264,7 @@ node_types:
                   reinstall_list: [ ]
                   workflow_id: smart_execute_update
         cleanup: { }
-      cloudify.interfaces.postupdate:
+      cloudify.interfaces.smart_update.postupdate:
         create: { }
         configure: { }
         start: { }

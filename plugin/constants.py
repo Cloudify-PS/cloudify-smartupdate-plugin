@@ -13,9 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-PREUPDATE_INTERFACE = 'cloudify.interfaces.preupdate'
-UPDATE_INTERFACE = 'cloudify.interfaces.update'
-POSTUPDATE_INTERFACE = 'cloudify.interfaces.postupdate'
+PREUPDATE_INTERFACE = 'cloudify.interfaces.smart_update.preupdate'
+UPDATE_INTERFACE = 'cloudify.interfaces.smart_update.update'
+POSTUPDATE_INTERFACE = 'cloudify.interfaces.smart_update.update'
 PREUPDATE_RELATIONSHIP_INTERFACE = 'cloudify.interfaces.relationship_preupdate'
 UPDATE_RELATIONSHIP_INTERFACE = 'cloudify.interfaces.relationship_update'
 POSTUPDATE_RELATIONSHIP_INTERFACE = 'cloudify.interfaces.relationship_postupdate'

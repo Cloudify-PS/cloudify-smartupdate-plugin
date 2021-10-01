@@ -139,8 +139,8 @@ capabilities:
   instance_name:
     value: { get_attribute: [instance, name] }
 
-  port_id:
-    value: { get_attribute: [new_port, id] }
+  # port_id:
+  #   value: { get_attribute: [new_port, id] }
 
-  port_name:
-    value: { get_attribute: [new_port, name] }
+  # port_name:
+  #   value: { get_attribute: [new_port, name] }

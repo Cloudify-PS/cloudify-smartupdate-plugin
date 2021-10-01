@@ -53,12 +53,12 @@ node_templates:
         flavor_id: m1.small
         availability_zone: nova
     interfaces:
-      cloudify.interfaces.preupdate:
+      cloudify.interfaces.smart_update.preupdate:
         stop: {}
         delete: {}
-      cloudify.interfaces.update:
+      cloudify.interfaces.smart_update.update:
         update: cloudify_smart_update.plugin.tasks.get_operation_name
-      cloudify.interfaces.postupdate:
+      cloudify.interfaces.smart_update.update:
         create: {}
         configure: {}
         start: openstack.openstack_plugin.resources.compute.server.reboot
