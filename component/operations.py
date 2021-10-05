@@ -44,6 +44,18 @@ def execute_start(operation, **_):
 
 
 @operation(resumable=True)
+@proxy_operation('prepare_deployment_update')
+def prepare_deployment_update(operation, **_):
+    return getattr(Component(_), operation)()
+
+
+@operation(resumable=True)
 @proxy_operation('execute_deployment_update')
 def execute_deployment_update(operation, **_):
+    return getattr(Component(_), operation)()
+
+
+@operation(resumable=True)
+@proxy_operation('cleanup_deployment_update')
+def cleanup_deployment_update(operation, **_):
     return getattr(Component(_), operation)()

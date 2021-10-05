@@ -596,6 +596,12 @@ def update_node_instance_subgraph(instance, graph, **kwargs):
     subgraph = graph.subgraph('update_{0}'.format(instance.id))
     sequence = subgraph.sequence()
     tasks = []
+    prepare = _skip_nop_operations(
+        pre=instance.send_event('Preparing update'),
+        task=instance.execute_operation(
+            'cloudify.interfaces.smart_update.update.prepare'),
+        post=instance.send_event('Update prepared')
+    )
     update = _skip_nop_operations(
         pre=forkjoin(instance.send_event('Updating node instance'),
                      instance.set_state('updating')),
@@ -603,6 +609,12 @@ def update_node_instance_subgraph(instance, graph, **kwargs):
             'cloudify.interfaces.smart_update.update.update'),
         post=forkjoin(instance.send_event('Node instance updated'),
                       instance.set_state('updated')))
+    cleanup = _skip_nop_operations(
+        pre=instance.send_event('Cleaning up after update'),
+        task=instance.execute_operation(
+            'cloudify.interfaces.smart_update.update.cleanup'),
+        post=instance.send_event('Cleaned up after update')
+    )
     relationship_update = _skip_nop_operations(
         pre=instance.send_event('Updating relationships'),
         task=_relationships_operations(
@@ -612,11 +624,15 @@ def update_node_instance_subgraph(instance, graph, **kwargs):
         ),
         post=instance.send_event('Relationships updated')
     )
-    if any([update, relationship_update]):
+    if any([prepare, update, cleanup, relationship_update]):
         tasks = (
             [instance.set_state('initializing')] +
+            (prepare or
+             [instance.send_event('Preparing node instance: nothing to do')]) +
             (update or
              [instance.send_event('Updating node instance: nothing to do')]) +
+            (cleanup or
+             [instance.send_event('Cleaning up node instance: nothing to do')]) +
             relationship_update +
             [forkjoin(
                 instance.set_state('started'),
@@ -642,7 +658,7 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
         pre=forkjoin(instance.send_event('Creating node instance'),
                      instance.set_state('creating')),
         task=instance.execute_operation(
-            'cloudify.interfaces.smart_update.update.create'),
+            'cloudify.interfaces.smart_update.postupdate.create'),
         post=forkjoin(instance.send_event('Node instance created'),
                       instance.set_state('created')))
     preconf = _skip_nop_operations(
@@ -658,7 +674,7 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
         pre=forkjoin(instance.set_state('configuring'),
                      instance.send_event('Configuring node instance')),
         task=instance.execute_operation(
-            'cloudify.interfaces.smart_update.update.configure'),
+            'cloudify.interfaces.smart_update.postupdate.configure'),
         post=forkjoin(instance.set_state('configured'),
                       instance.send_event('Node instance configured'))
     )
@@ -674,7 +690,7 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
     start = _skip_nop_operations(
         pre=forkjoin(instance.set_state('starting'),
                      instance.send_event('Starting node instance')),
-        task=instance.execute_operation('cloudify.interfaces.smart_update.update.start'),
+        task=instance.execute_operation('cloudify.interfaces.smart_update.postupdate.start'),
     )
     # If this is a host node, we need to add specific host start
     # tasks such as waiting for it to start and installing the agent
@@ -685,12 +701,12 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
         host_post_start = []
 
     # Taken from 5.0.
-    if 'cloudify.interfaces.smart_update.update.poststart' \
+    if 'cloudify.interfaces.smart_update.postupdate.poststart' \
             in instance.node.operations:
         poststart = _skip_nop_operations(
             pre=instance.send_event('Poststarting node instance'),
             task=instance.execute_operation(
-                'cloudify.interfaces.smart_update.update.poststart'),
+                'cloudify.interfaces.smart_update.postupdate.poststart'),
             post=instance.send_event('Node instance poststarted'))
     else:
         poststart = []

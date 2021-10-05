@@ -57,11 +57,14 @@ node_templates:
         stop: {}
         delete: {}
       cloudify.interfaces.smart_update.update:
+        prepare: cloudify_smart_update.component.operations.prepare_deployment_update
         update: cloudify_smart_update.plugin.tasks.get_operation_name
-      cloudify.interfaces.smart_update.update:
+        cleanup: cloudify_smart_update.component.operations.cleanup_deployment_update
+      cloudify.interfaces.smart_update.postupdate:
         create: {}
         configure: {}
-        start: openstack.openstack_plugin.resources.compute.server.reboot
+        start: {}
+        poststart: openstack.openstack_plugin.resources.compute.server.reboot
     relationships:
       - type: cloudify.relationships.openstack.server_connected_to_port
         target: port

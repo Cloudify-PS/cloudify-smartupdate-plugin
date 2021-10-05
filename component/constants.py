@@ -19,3 +19,6 @@ from cloudify_types.component.constants import (DEPLOYMENTS_TIMEOUT,
                                                 EXTERNAL_RESOURCE,
                                                 CAPABILITIES)
 TASK_RETRIES = 'task_retries'
+BLUEPRINT = 'blueprint'
+CURRENT_BLUEPRINT = 'current_blueprint'
+OLD_BLUEPRINT = 'old_blueprint'

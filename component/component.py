@@ -18,7 +18,10 @@ from cloudify_rest_client.exceptions import CloudifyClientError
 
 from .constants import (
     EXTERNAL_RESOURCE,
-    TASK_RETRIES)
+    TASK_RETRIES,
+    BLUEPRINT,
+    CURRENT_BLUEPRINT,
+    OLD_BLUEPRINT)
 from cloudify_types.component.polling import (
     poll_with_timeout,
     is_all_executions_finished,
@@ -183,6 +186,16 @@ class Component(BasicComponent):
         populate_runtime_with_wf_results(self.client, self.deployment_id)
         return True
 
+    def prepare_deployment_update(self):
+        ctx.instance.refresh()
+        if BLUEPRINT in ctx.instance.runtime_properties:
+            ctx.instance.runtime_properties[OLD_BLUEPRINT] = ctx.instance.runtime_properties.get(BLUEPRINT).get("id")
+            ctx.instance.runtime_properties[CURRENT_BLUEPRINT] = self.blueprint_id
+        ctx.instance.update()
+        if BLUEPRINT in ctx.instance.runtime_properties:
+            self.upload_blueprint()
+        return True
+
     def execute_deployment_update(self):
         # Wait for the deployment to finish any executions
         if not poll_with_timeout(lambda:
@@ -250,6 +263,21 @@ class Component(BasicComponent):
         ctx.logger.info('Execution succeeded for update of "{0}" deployment'.format(
             self.deployment_id))
         populate_runtime_with_wf_results(self.client, self.deployment_id)
+        return True
+
+    def cleanup_deployment_update(self):
+        if ctx.instance.runtime_properties.get(OLD_BLUEPRINT) \
+          != ctx.instance.runtime_properties.get(CURRENT_BLUEPRINT):
+            old_blueprint_id = \
+                ctx.instance.runtime_properties.get(OLD_BLUEPRINT)
+            self.client.blueprints.delete(old_blueprint_id)
+
+        ctx.instance.refresh()
+        if BLUEPRINT in ctx.instance.runtime_properties:
+            ctx.instance.runtime_properties[BLUEPRINT]["id"] = self.blueprint_id
+            del ctx.instance.runtime_properties[OLD_BLUEPRINT]
+            del ctx.instance.runtime_properties[CURRENT_BLUEPRINT]
+        ctx.instance.update()
         return True
 
     @staticmethod
