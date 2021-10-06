@@ -21,7 +21,11 @@ from cloudify.manager import get_rest_client
 from collections import OrderedDict
 
 from . import lifecycle
-from .constants import UPDATE_OPERATION, PREUPDATE_OPERATIONS, POSTUPDATE_OPERATIONS
+from .constants import (
+    UPDATE_OPERATION,
+    PREUPDATE_OPERATIONS,
+    POSTUPDATE_OPERATIONS
+)
 
 @workflow
 def smart_update(ctx,
@@ -65,7 +69,8 @@ def smart_update(ctx,
     for node_instance_to_reinstall_id in set(node_instances_to_reinstall):
         node_instance_to_reinstall = ctx.get_node_instance(
             node_instance_to_reinstall_id)
-        if  UPDATE_OPERATION not in node_instance_to_reinstall.node.operations:
+        if  UPDATE_OPERATION not in \
+                node_instance_to_reinstall.node.operations:
             to_reinstall.append(node_instance_to_reinstall_id)
 
     node_instances_to_reinstall = to_reinstall

@@ -18,7 +18,8 @@ UPDATE_INTERFACE = 'cloudify.interfaces.smart_update.update'
 POSTUPDATE_INTERFACE = 'cloudify.interfaces.smart_update.postupdate'
 PREUPDATE_RELATIONSHIP_INTERFACE = 'cloudify.interfaces.relationship_preupdate'
 UPDATE_RELATIONSHIP_INTERFACE = 'cloudify.interfaces.relationship_update'
-POSTUPDATE_RELATIONSHIP_INTERFACE = 'cloudify.interfaces.relationship_postupdate'
+POSTUPDATE_RELATIONSHIP_INTERFACE = \
+    'cloudify.interfaces.relationship_postupdate'
 
 PREUPDATE_OPERATIONS = [
     PREUPDATE_INTERFACE + '.stop',

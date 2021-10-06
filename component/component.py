@@ -194,6 +194,8 @@ class Component(BasicComponent):
         ctx.instance.update()
         if BLUEPRINT in ctx.instance.runtime_properties:
             self.upload_blueprint()
+            ctx.logger.debug('Blueprint "{0}" uploaded'
+                             .format(self.blueprint_id))
         return True
 
     def execute_deployment_update(self):
@@ -271,6 +273,8 @@ class Component(BasicComponent):
             old_blueprint_id = \
                 ctx.instance.runtime_properties.get(OLD_BLUEPRINT)
             self.client.blueprints.delete(old_blueprint_id)
+            ctx.logger.info('Redundant blueprint "{0}" deleted'
+                            .format(old_blueprint_id))
 
         ctx.instance.refresh()
         if BLUEPRINT in ctx.instance.runtime_properties:

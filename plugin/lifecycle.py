@@ -503,7 +503,8 @@ def preupdate_node_instance_subgraph(instance, graph, ignore_failure=False):
         instance.execute_operation('cloudify.interfaces.monitoring.stop')
     )
     # Taken from 5.0
-    if 'cloudify.interfaces.smart_update.preupdate.prestop' in instance.node.operations:
+    if 'cloudify.interfaces.smart_update.preupdate.prestop' \
+            in instance.node.operations:
         prestop = _skip_nop_operations(
             pre=instance.send_event('Prestopping node instance'),
             task=instance.execute_operation(
@@ -518,7 +519,8 @@ def preupdate_node_instance_subgraph(instance, graph, ignore_failure=False):
         host_pre_stop = []
 
     stop = _skip_nop_operations(
-        task=instance.execute_operation('cloudify.interfaces.smart_update.preupdate.stop'),
+        task=instance.execute_operation(
+            'cloudify.interfaces.smart_update.preupdate.stop'),
         post=instance.send_event('Stopped node instance'))
     stopped_set_state = [instance.set_state('stopped')]
 
@@ -538,6 +540,16 @@ def preupdate_node_instance_subgraph(instance, graph, ignore_failure=False):
         task=instance.execute_operation(
             'cloudify.interfaces.smart_update.preupdate.delete')
     )
+    # Taken from 5.0.
+    if 'cloudify.interfaces.smart_update.preupdate.postdelete' \
+            in instance.node.operations:
+        postdelete = _skip_nop_operations(
+            pre=instance.send_event('Postdeleting node instance'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.smart_update.preupdate.postdelete'),
+            post=instance.send_event('Node instance postdeleted'))
+    else:
+        postdelete = []
     finish_message = [forkjoin(
         instance.set_state('deleted'),
         instance.send_event('Deleted node instance')
@@ -579,6 +591,7 @@ def preupdate_node_instance_subgraph(instance, graph, ignore_failure=False):
         unlink +
         (delete or
          [instance.send_event('Deleting node instance: nothing to do')]) +
+        postdelete +
         finish_message
     )
     sequence.add(*tasks)
@@ -632,7 +645,8 @@ def update_node_instance_subgraph(instance, graph, **kwargs):
             (update or
              [instance.send_event('Updating node instance: nothing to do')]) +
             (cleanup or
-             [instance.send_event('Cleaning up node instance: nothing to do')]) +
+             [instance.send_event(
+                 'Cleaning up node instance: nothing to do')]) +
             relationship_update +
             [forkjoin(
                 instance.set_state('started'),
@@ -654,6 +668,16 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
     tasks = []
+    # Taken from 5.0.
+    if 'cloudify.interfaces.smart_update.postupdate.precreate' \
+            in instance.node.operations:
+        precreate = _skip_nop_operations(
+            pre=instance.send_event('Precreating node instance'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.smart_update.postupdate.precreate'),
+            post=instance.send_event('Node instance precreated'))
+    else:
+        precreate = []
     create = _skip_nop_operations(
         pre=forkjoin(instance.send_event('Creating node instance'),
                      instance.set_state('creating')),
@@ -690,7 +714,8 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
     start = _skip_nop_operations(
         pre=forkjoin(instance.set_state('starting'),
                      instance.send_event('Starting node instance')),
-        task=instance.execute_operation('cloudify.interfaces.smart_update.postupdate.start'),
+        task=instance.execute_operation(
+            'cloudify.interfaces.smart_update.postupdate.start'),
     )
     # If this is a host node, we need to add specific host start
     # tasks such as waiting for it to start and installing the agent
@@ -722,10 +747,13 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
         ),
         post=instance.send_event('Relationships established'),
     )
-    if any([create, preconf, configure, postconf, start, poststart,
+    if any([precreate, create, preconf, configure, postconf, start, poststart,
             host_post_start, monitoring_start, establish]):
         tasks = (
             [instance.set_state('initializing')] +
+            (precreate or
+             [instance.send_event(
+                 'Precreating node instance: nothing to do')]) +
             (create or
              [instance.send_event('Creating node instance: nothing to do')]) +
             preconf +
