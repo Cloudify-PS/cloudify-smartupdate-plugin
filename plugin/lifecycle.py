@@ -784,23 +784,35 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
     subgraph.on_failure = get_subgraph_on_failure_handler(instance)
     return subgraph
 
+# make method visible in the module since cloudify workflow calls get_func
+def subgraph_on_failure_handler(subgraph):
+    graph = subgraph.graph
+    for task in subgraph.tasks.values():
+        subgraph.remove_task(task)
+    if not subgraph.containing_subgraph:
+        result = workflow_tasks.HandlerResult.retry()
+        result.retried_task = retried_task(instance, graph)
+        result.retried_task.current_retries = subgraph.current_retries + 1
+    else:
+        result = workflow_tasks.HandlerResult.ignore()
+        subgraph.containing_subgraph.failed_task = subgraph.failed_task
+        subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
+    return result
+
 
 def get_subgraph_on_failure_handler(
         instance, retried_task=reinstall_node_instance_subgraph):
-    def subgraph_on_failure_handler(subgraph):
-        graph = subgraph.graph
-        for task in subgraph.tasks.values():
-            subgraph.remove_task(task)
-        if not subgraph.containing_subgraph:
-            result = workflow_tasks.HandlerResult.retry()
-            result.retried_task = retried_task(instance, graph)
-            result.retried_task.current_retries = subgraph.current_retries + 1
-        else:
-            result = workflow_tasks.HandlerResult.ignore()
-            subgraph.containing_subgraph.failed_task = subgraph.failed_task
-            subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
-        return result
     return subgraph_on_failure_handler
+
+
+# make method visible in the module since cloudify workflow calls get_func
+def on_failure(subgraph):
+    for task in subgraph.tasks.values():
+        subgraph.remove_task(task)
+    handler_result = workflow_tasks.HandlerResult.ignore()
+    subgraph.containing_subgraph.failed_task = subgraph.failed_task
+    subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
+    return handler_result
 
 
 def _relationships_operations(graph,
@@ -808,13 +820,6 @@ def _relationships_operations(graph,
                               operation,
                               reverse=False,
                               modified_relationship_ids=None):
-    def on_failure(subgraph):
-        for task in subgraph.tasks.values():
-            subgraph.remove_task(task)
-        handler_result = workflow_tasks.HandlerResult.ignore()
-        subgraph.containing_subgraph.failed_task = subgraph.failed_task
-        subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
-        return handler_result
     relationships_groups = itertools.groupby(
         node_instance.relationships,
         key=lambda r: r.relationship.target_id)
