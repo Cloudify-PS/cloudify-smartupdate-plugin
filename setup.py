@@ -23,7 +23,7 @@ setup(
     # Do not use underscores in the plugin name.
     name='cloudify-smartupdate-plugin',
 
-    version='2.0',
+    version='2.0.1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     description='''

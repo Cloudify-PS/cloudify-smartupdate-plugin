@@ -1,0 +1,1 @@
+2.0.1: expose on_failure subgraphs inside the module since Cloudify workflows calls get_func.
