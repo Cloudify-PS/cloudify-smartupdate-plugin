@@ -1,18 +1,7 @@
-cloudify-plugin-template
+cloudify-smartupdate-template
 ========================
 
-[![Build Status](https://travis-ci.org/cloudify-cosmo/cloudify-plugin-template.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/cloudify-plugin-template)
+# Changelog
 
-Cloudify plugin project template.
-
-## Usage
-
-See [writing your own plugin](https://docs.cloudify.co/4.4.0/developer/writing_plugins/)
-
-## Tests
-
-To run the example plugin tests, the included `dev-requirements.txt` should be installed.
-
-```
-pip install -r dev-requirements.txt
-```
+2.1.0
+- Added option for Component to use absolute path to poin blueprint archive file on the manager (outside blueprint directory)
