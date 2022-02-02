@@ -2,7 +2,7 @@ plugins:
   cloudify_smart_update:
     executor: central_deployment_agent
     package_name: cloudify-smartupdate-plugin
-    package_version: '2.0.1'
+    package_version: '2.1.0'
 
 
 workflows:

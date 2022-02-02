@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from os import path
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
 from cloudify_rest_client.exceptions import CloudifyClientError
@@ -61,6 +62,12 @@ class Component(BasicComponent):
             raise NonRecoverableError(
                 'Client action "{0}" failed: {1}.'.format(request_action,
                                                           ex))
+
+    @staticmethod
+    def _is_valid_url(candidate):
+      return (not (path.isabs(candidate) and \
+                   path.isfile(candidate))) and \
+              BasicComponent._is_valid_url(candidate)
 
     def create_deployment(self):
         self._set_secrets()
