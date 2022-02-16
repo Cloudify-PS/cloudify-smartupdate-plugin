@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from os import path
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
@@ -22,7 +23,8 @@ from .constants import (
     TASK_RETRIES,
     BLUEPRINT,
     CURRENT_BLUEPRINT,
-    OLD_BLUEPRINT)
+    OLD_BLUEPRINT,
+    POLLING_INTERVAL)
 from cloudify_types.component.polling import (
     poll_with_timeout,
     is_all_executions_finished,
@@ -129,6 +131,58 @@ class Component(BasicComponent):
                         .format(execution_id,
                                 self.deployment_id))
         return self.verify_execution_successful(execution_id)
+
+    def delete_deployment(self):
+        ctx.logger.info("Wait for component's stop deployment operation "
+                        "related executions.")
+        poll_with_timeout(
+            lambda:
+            is_all_executions_finished(self.client,
+                                       self.deployment_id),
+            timeout=self.timeout,
+            expected_result=True)
+
+        ctx.logger.info('Delete component\'s "{0}" deployment'
+                        .format(self.deployment_id))
+
+        execution_args = self.config.get('executions_start_args', {})
+
+        request_args = dict(
+            deployment_id=self.deployment_id,
+            **execution_args
+        )
+
+        self._http_client_wrapper('deployments',
+                                  'delete',
+                                  request_args)
+
+        ctx.logger.info("Waiting for component's deployment delete.")
+        poll_result = poll_with_timeout(
+            lambda: deployment_id_exists(self.client, self.deployment_id),
+            timeout=self.timeout,
+            expected_result=False)
+
+        ctx.logger.info("Little wait internal cleanup services.")
+        time.sleep(POLLING_INTERVAL)
+        ctx.logger.info("Wait for stop all system workflows.")
+
+        poll_with_timeout(
+            lambda: is_all_executions_finished(self.client),
+            timeout=self.timeout,
+            expected_result=True)
+
+        if not self.blueprint.get(EXTERNAL_RESOURCE):
+            ctx.logger.info('Delete component\'s blueprint "{0}".'
+                            .format(self.blueprint_id))
+            self._http_client_wrapper('blueprints',
+                                      'delete',
+                                      dict(blueprint_id=self.blueprint_id))
+
+        self._delete_plugins()
+        self._delete_secrets()
+        self._delete_runtime_properties()
+
+        return poll_result
 
     def execute_workflow(self):
         # Wait for the deployment to finish any executions
