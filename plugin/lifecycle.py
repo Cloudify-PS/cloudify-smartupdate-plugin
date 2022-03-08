@@ -20,6 +20,9 @@ from cloudify import constants
 from cloudify.state import workflow_ctx
 from cloudify.workflows.tasks_graph import forkjoin, make_or_get_graph
 from cloudify.workflows import tasks as workflow_tasks
+from cloudify.plugins.lifecycle import (
+    _SubgraphOnFailure, _SendNodeEventHandler
+)
 
 
 def install_node_instances(graph, node_instances, related_nodes=None):
@@ -260,10 +263,7 @@ class SmartUpdateLifecycleProcessor(object):
 
 
 def set_send_node_event_on_error_handler(task, instance):
-    def send_node_event_error_handler(tsk):
-        instance.send_event('Ignoring task {0} failure'.format(tsk.name))
-        return workflow_tasks.HandlerResult.ignore()
-    task.on_failure = send_node_event_error_handler
+    task.on_failure = _SendNodeEventHandler(instance)
 
 
 def _skip_nop_operations(task, pre=None, post=None):
@@ -379,7 +379,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         )]
 
     sequence.add(*tasks)
-    subgraph.on_failure = get_subgraph_on_failure_handler(instance)
+    subgraph.on_failure = _SubgraphOnFailure(instance)
     return subgraph
 
 
@@ -467,8 +467,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     if ignore_failure:
         set_ignore_handlers(subgraph)
     else:
-        subgraph.on_failure = get_subgraph_on_failure_handler(
-            instance, uninstall_node_instance_subgraph)
+        subgraph.on_failure = _SubgraphOnFailure(instance, 'uninstall')
 
     return subgraph
 
@@ -485,8 +484,7 @@ def reinstall_node_instance_subgraph(instance, graph):
                             'Attempting to re-run node lifecycle'),
         uninstall_subgraph,
         install_subgraph)
-    reinstall_subgraph.on_failure = get_subgraph_on_failure_handler(
-        instance)
+    reinstall_subgraph.on_failure = _SubgraphOnFailure(instance)
     return reinstall_subgraph
 
 
@@ -599,8 +597,7 @@ def preupdate_node_instance_subgraph(instance, graph, ignore_failure=False):
     if ignore_failure:
         set_ignore_handlers(subgraph)
     else:
-        subgraph.on_failure = get_subgraph_on_failure_handler(
-            instance, uninstall_node_instance_subgraph)
+        subgraph.on_failure = _SubgraphOnFailure(instance, 'uninstall')
 
     return subgraph
 
@@ -660,7 +657,7 @@ def update_node_instance_subgraph(instance, graph, **kwargs):
         )]
 
     sequence.add(*tasks)
-    subgraph.on_failure = get_subgraph_on_failure_handler(instance)
+    subgraph.on_failure = _SubgraphOnFailure(instance)
     return subgraph
 
 
@@ -781,38 +778,8 @@ def postupdate_node_instance_subgraph(instance, graph, **kwargs):
         )]
 
     sequence.add(*tasks)
-    subgraph.on_failure = get_subgraph_on_failure_handler(instance)
+    subgraph.on_failure = _SubgraphOnFailure(instance)
     return subgraph
-
-# make method visible in the module since cloudify workflow calls get_func
-def subgraph_on_failure_handler(subgraph):
-    graph = subgraph.graph
-    for task in subgraph.tasks.values():
-        subgraph.remove_task(task)
-    if not subgraph.containing_subgraph:
-        result = workflow_tasks.HandlerResult.retry()
-        result.retried_task = retried_task(instance, graph)
-        result.retried_task.current_retries = subgraph.current_retries + 1
-    else:
-        result = workflow_tasks.HandlerResult.ignore()
-        subgraph.containing_subgraph.failed_task = subgraph.failed_task
-        subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
-    return result
-
-
-def get_subgraph_on_failure_handler(
-        instance, retried_task=reinstall_node_instance_subgraph):
-    return subgraph_on_failure_handler
-
-
-# make method visible in the module since cloudify workflow calls get_func
-def on_failure(subgraph):
-    for task in subgraph.tasks.values():
-        subgraph.remove_task(task)
-    handler_result = workflow_tasks.HandlerResult.ignore()
-    subgraph.containing_subgraph.failed_task = subgraph.failed_task
-    subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
-    return handler_result
 
 
 def _relationships_operations(graph,
@@ -846,7 +813,7 @@ def _relationships_operations(graph,
     if not tasks:
         return
     result = graph.subgraph('{0}_subgraph'.format(operation))
-    result.on_failure = on_failure
+    result.on_failure =  _SubgraphOnFailure(instance)
     sequence = result.sequence()
     sequence.add(*tasks)
     return result
