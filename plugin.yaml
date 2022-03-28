@@ -2,7 +2,7 @@ plugins:
   cloudify_smart_update:
     executor: central_deployment_agent
     package_name: cloudify-smartupdate-plugin
-    package_version: '2.1.2'
+    package_version: '2.1.3'
 
 
 workflows:
@@ -144,20 +144,6 @@ data_types:
         type: boolean
         required: false
 
-  cloudify.datatypes.smart_update.Component:
-    properties:
-      blueprint:
-        type: cloudify.datatypes.smart_update.Blueprint
-        required: true
-      deployment:
-        type: cloudify.datatypes.smart_update.ComponentDeployment
-        required: true
-      executions_start_args:
-        description: >
-          Optional params for Component executions.
-        type: dict
-        default: { }
-
 node_types:
   cloudify.nodes.smart_update.Root:
     derived_from: cloudify.nodes.Root
@@ -175,33 +161,7 @@ node_types:
         poststart: cloudify_smart_update.plugin.tasks.get_operation_name
 
   cloudify.nodes.smart_update.Component:
-    derived_from: cloudify.nodes.Root
-    properties:
-      resource_config:
-        type: cloudify.datatypes.smart_update.Component
-        default: {}
-      client:
-        description: >
-          Cloudify HTTP client configuration,
-          if empty the current Cloudify manager client will be used.
-        type: cloudify.datatypes.RemoteCloudifyManagerClient
-        default: {}
-      plugins:
-        description: >
-          Dictionary of plugins to upload,
-          which each plugin is in format of:
-            plugin-name:
-              wagon_path: Url for plugin wagon file,
-              plugin_yaml_path: Url for plugin yaml file
-        type: dict
-        default: {}
-      secrets:
-        description: >
-          Dictionary of secrets to set before deploying Components,
-          which each secret is in format of:
-            secret-name: value
-        type: dict
-        default: {}
+    derived_from: cloudify.nodes.Component
     interfaces:
       cloudify.interfaces.lifecycle:
         create:

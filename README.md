@@ -3,6 +3,9 @@ cloudify-smartupdate-template
 
 # Changelog
 
+2.1.3
+- `cloudify.nodes.smart_update.Component` derived_from `cloudify.nodes.Component`
+
 2.1.2
 - 'retried_task' is not defined error fix
 
