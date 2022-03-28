@@ -813,7 +813,7 @@ def _relationships_operations(graph,
     if not tasks:
         return
     result = graph.subgraph('{0}_subgraph'.format(operation))
-    result.on_failure =  _SubgraphOnFailure(instance)
+    result.on_failure =  _SubgraphOnFailure(node_instance)
     sequence = result.sequence()
     sequence.add(*tasks)
     return result
